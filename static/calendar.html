@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧗‍♀️ 爬墙记录</title>
+    <script src="https://lib.baomitu.com/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://lib.baomitu.com/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #e94560;
+            --primary-gradient: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+            --bg-dark: #0f0f23;
+            --bg-card: rgba(255, 255, 255, 0.08);
+            --text: #fff;
+            --text-secondary: #8892b0;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; background: var(--bg-dark); min-height: 100vh; color: var(--text); padding-bottom: 80px; }
+        .header { background: linear-gradient(180deg, rgba(233,69,96,0.3) 0%, transparent 100%); padding: 20px; text-align: center; position: relative; }
+        .header h1 { font-size: 24px; margin-bottom: 8px; }
+        .header .year { color: var(--text-secondary); font-size: 14px; }
+        .header-actions { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; }
+        .settings-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+        .stats-btn { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary-gradient); border: none; color: white; font-size: 24px; cursor: pointer; box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4); z-index: 100; }
+        .month-nav { display: flex; align-items: center; justify-content: center; padding: 20px; gap: 20px; }
+        .month-nav button { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+        .month-nav .current-month { font-size: 20px; font-weight: bold; min-width: 150px; text-align: center; }
+        .calendar { padding: 0 15px; }
+        .calendar-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 10px; }
+        .calendar-header div { text-align: center; color: var(--text-secondary); font-size: 12px; padding: 10px 0; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .calendar-day { background: var(--bg-card); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; height: 100px; }
+        .calendar-day.empty { background: transparent; cursor: default; }
+        .calendar-day.today { border-color: var(--primary); box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
+        .calendar-day.has-record { background: rgba(233, 69, 96, 0.15); }
+        .day-number { font-size: 14px; font-weight: bold; text-align: center; }
+        .day-gym { font-size: 14px; color: #fff; background: var(--primary); padding: 4px 6px; border-radius: 10px; display: block; text-align: center; margin: 2px 0; }
+        .day-labels { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: #1a1a2e; border-radius: 20px; width: 100%; max-width: 400px; max-height: 80vh; display: flex; flex-direction: column; position: relative; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
+        .modal-header h2 { margin-bottom: 0; }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 15px 24px; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 10px; }
+        .modal-footer .btn { margin-top: 0; flex: 1; }
+        .btn-cancel { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); }
+        .modal-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; z-index: 10; }
+        .modal h2 { margin-bottom: 20px; font-size: 18px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; }
+        .form-group select option { background: #1a1a2e; color: var(--text); }
+        .btn { width: 100%; padding: 14px; background: var(--primary-gradient); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-secondary { background: var(--bg-card); border: 1px solid var(--border); }
+        .record-item { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 8px; display: flex; flex-direction: column; border: 1px solid var(--border); width: 100%; box-sizing: border-box; }
+        .record-item:last-child { margin-bottom: 0; }
+        .records-container { display: flex; flex-direction: column; gap: 8px; }
+        .record-item > div { flex: none; }
+        .record-item .gym-name { font-size: 16px; font-weight: bold; margin-bottom: 8px; color: var(--primary); }
+        .record-item .info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+        .record-item .info span { color: var(--text); }
+        .record-item .partner { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
+        .record-item .partner span { color: #4ecdc4; }
+        .record-item .notes-row { display: flex; flex-direction: row; gap: 12px; margin-top: 8px; align-items: flex-start; }
+        .record-item .notes { font-size: 13px; color: var(--text-secondary); padding-top: 8px; border-top: 1px solid var(--border); flex: 1; }
+        .record-item .routes { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .route-tag { background: rgba(233, 69, 96, 0.2); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+        .record-item .actions { display: flex; gap: 8px; white-space: nowrap; }
+        .edit-btn { background: transparent; border: 1px solid #4ecdc4; color: #4ecdc4; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-right: 10px; }
+        .delete-btn { background: transparent; border: 1px solid #ff4757; color: #ff4757; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        .import-export { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .import-export button { flex: 1; padding: 10px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .settings-page, .stats-page { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-dark); z-index: 2000; overflow-y: auto; }
+        .settings-page.active, .stats-page.active { display: block; }
+        .stats-header, .settings-header, .stats-header { display: flex; align-items: center; justify-content: space-between; padding: 20px; background: rgba(233, 69, 96, 0.1); flex-wrap: wrap; gap: 10px; }
+        .settings-header h2, .stats-header h2 { font-size: 20px; }
+        .settings-header button, .stats-header button { background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
+        .settings-content, .stats-content { padding: 20px; }
+        .settings-section, .stats-section { background: var(--bg-card); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+        .gym-category { margin-bottom: 16px; }
+        .gym-category h4 { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+        .settings-section h3, .stats-section h3 { font-size: 16px; margin-bottom: 16px; color: var(--primary); }
+        .settings-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .settings-list-item { display: flex; align-items: center; padding: 8px 12px; background: var(--bg-dark); border-radius: 20px; gap: 8px; }
+        .settings-list-item span { font-size: 14px; }
+        .settings-list-item button { background: none; border: none; color: #ff4757; cursor: pointer; padding: 0 4px; font-size: 14px; }
+        .add-item { display: flex; gap: 8px; }
+        .add-item input { flex: 1; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
+        .add-item button { padding: 10px 16px; background: var(--primary); border: none; border-radius: 8px; color: white; cursor: pointer; }
+        .partner-tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .partner-tag { padding: 8px 16px; background: var(--bg-dark); border-radius: 20px; cursor: pointer; border: 1px solid var(--border); font-size: 14px; transition: all 0.2s; }
+        .partner-tag.selected { border-color: var(--primary); background: rgba(233, 69, 96, 0.3); color: var(--primary); }
+        .partner-checkbox-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .partner-checkbox-item { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: var(--bg-dark); border-radius: 20px; cursor: pointer; border: 1px solid var(--border); font-size: 15px; }
+        .partner-checkbox-item.checked { border-color: var(--primary); background: rgba(233, 69, 96, 0.3); color: var(--primary); }
+        .route-table { width: 100%; border-collapse: collapse; }
+        .route-table th { text-align: left; padding: 8px; color: var(--text-secondary); font-size: 13px; border-bottom: 1px solid var(--border); }
+        .route-table td { padding: 8px; border-bottom: 1px solid var(--border); }
+        .route-table td:first-child { color: var(--primary); font-weight: bold; }
+        .route-table input { width: 60px; padding: 6px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text); text-align: center; }
+        .date-range { display: flex; gap: 10px; margin-bottom: 16px; }
+        .date-range input { flex: 1; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .stats-card { background: var(--bg-dark); border-radius: 12px; padding: 16px; text-align: center; }
+        .stats-card .value { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .stats-card .label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="position: absolute; top: 20px; left: 20px;">
+            <div id="userInfo" style="position: relative; cursor: pointer;">
+                <div onclick="toggleUserMenu()" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 20px; border: 1px solid var(--border);">
+                    <span id="userNameDisplay" style="font-size: 14px; color: var(--text);"></span>
+                    <span style="font-size: 10px; color: var(--text-secondary);">▼</span>
+                </div>
+                <div id="userMenu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; min-width: 120px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000;">
+                    <div onclick="logout()" style="padding: 10px 16px; color: #ff6b6b; cursor: pointer; font-size: 14px;">退出登录</div>
+                </div>
+            </div>
+        </div>
+        <h1>🧗‍♀️ 爬墙记录</h1>
+        <div class="year" id="yearDisplay">努力总会有回报！</div>
+        <div class="header-actions">
+            <button class="settings-btn" onclick="showFeedback()" title="意见反馈">💬</button>
+            <button class="settings-btn" onclick="showImportExport()" title="导入/导出">📤</button>
+            <button class="settings-btn" onclick="showSettings()" title="设置">⚙️</button>
+            <button class="settings-btn" onclick="clearAllData()" title="清空数据" style="color: #ff6b6b;">🗑️</button>
+        </div>
+    </div>
+    <div class="month-nav">
+        <button onclick="changeMonth(-1)">◀</button>
+        <div class="current-month" id="currentMonth">2026年3月</div>
+        <button onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="calendar">
+        <div class="calendar-header">
+            <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+    <button class="stats-btn" onclick="showStats()">📊</button>
+    
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="detailDate">2026年3月7日</h2>
+                <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+            </div>
+            <div class="modal-body" id="detailRecords"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="addRecordToDate()">➕ 添加记录</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ 添加打卡记录</h2>
+                <button class="modal-close" onclick="closeModal('addModal')">×</button>
+            </div>
+            <form id="addForm" class="modal-body">
+                <div class="form-group">
+                    <label>岩馆品牌 *</label>
+                    <select id="gymCategory" onchange="updateGymOptions()" required>
+                        <option value="">请选择品牌</option>
+                        <option value="香蕉">🍌 香蕉</option>
+                        <option value="cube">📦 cube</option>
+                        <option value="upper">⬆️ upper</option>
+                        <option value="闪电">⚡ 闪电</option>
+                        <option value="其他">📍 其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>岩馆名称 *</label>
+                    <select id="gymName" required>
+                        <option value="">请先选择品牌</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="climbDate" required>
+                </div>
+                <div class="form-group">
+                    <label>时长 (小时)</label>
+                    <input type="number" id="duration" step="0.5" min="0.5" placeholder="例如：2.5">
+                </div>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select id="climbType" onchange="updateRouteOptions()">
+                        <option value="抱石">抱石</option>
+                        <option value="难度">难度</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>攀爬成果</label>
+                    <table class="route-table">
+                        <thead>
+                            <tr><th>级别</th><th>完攀数量</th></tr>
+                        </thead>
+                        <tbody id="routeTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="form-group">
+                    <label>搭子 (可多选)</label>
+                    <div class="partner-tag-list" id="partnerList"></div>
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="notes" placeholder="今天的表现、感受等"></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" onclick="closeModal('addModal')">取消</button>
+                <button type="submit" class="btn" form="addForm">保存记录</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="settings-page" id="settingsPage">
+        <div class="settings-header">
+            <button onclick="closeSettings()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+            <h2>⚙️ 设置</h2>
+            <div></div>
+        </div>
+        <div class="settings-content">
+            <div class="settings-section">
+                <h3>🏋️ 岩馆品牌</h3>
+                <div id="gymCategories"></div>
+                <div class="add-item" style="margin-top: 12px;">
+                    <select id="gymCategorySetting" style="flex:1;padding:10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+                        <option value="香蕉">香蕉</option>
+                        <option value="cube">cube</option>
+                        <option value="upper">upper</option>
+                        <option value="闪电">闪电</option>
+                        <option value="其他">其他</option>
+                    </select>
+                    <input type="text" id="newGymSetting" placeholder="输入岩馆名称" style="flex:2;">
+                    <button onclick="addSetting('gym')">添加</button>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>👥 可选搭子</h3>
+                <div class="settings-list" id="partnerSettingsList" style="margin-bottom: 12px;"></div>
+                <div class="add-item">
+                    <input type="text" id="newPartnerSetting" placeholder="输入搭子名称">
+                    <button onclick="addSetting('partner')">添加</button>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>🧗 抱石线路最高级别</h3>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="text" id="maxGrade" placeholder="例如：V6" style="flex:1;padding:10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);" onchange="saveMaxGrade(this.value)">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stats-page" id="statsPage">
+        <div class="stats-header" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(233, 69, 96, 0.1);">
+            <button onclick="closeStats()" style="background:var(--bg-card);border:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;">←</button>
+            <h2 style="text-align: center; margin: 0; flex: 1;">📊 统计面板</h2>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="date" id="statsStartDate" style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 14px; color-scheme: dark;">
+                <span style="color: var(--text-secondary);">至</span>
+                <input type="date" id="statsEndDate" style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 14px; color-scheme: dark;">
+                <button onclick="updateStats()" style="background: var(--primary); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">查询</button>
+            </div>
+        </div>
+        <div class="stats-content">
+            <!-- 总次数和频率 - 放在一个大卡片中，各自独立带边框 -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; gap: 16px;">
+                    <div style="flex: 1; background: rgba(233, 69, 96, 0.15); border: 1px solid var(--primary); border-radius: 12px; padding: 16px; text-align: center;">
+                        <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 4px;">攀爬次数</div>
+                        <div style="font-size: 28px; font-weight: bold; color: var(--primary);" id="totalCount">0</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">次</div>
+                    </div>
+                    <div style="flex: 1; background: rgba(78, 205, 196, 0.15); border: 1px solid #4ecdc4; border-radius: 12px; padding: 16px; text-align: center;">
+                        <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 4px;">攀爬频率</div>
+                        <div style="font-size: 28px; font-weight: bold; color: #4ecdc4;" id="frequency">0</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">次/7天</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 两个柱状图：左右并列 -->
+            <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+                <!-- 常去岩馆 Top5 -->
+                <div class="stats-section" style="flex: 1;">
+                    <h3>🏋️ 常去岩馆 Top5</h3>
+                    <div style="height: 180px; position: relative;">
+                        <canvas id="gymChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 过线记录 - 环状图 -->
+                <div class="stats-section" style="flex: 1;">
+                    <h3>🧗 过线记录</h3>
+                    <div style="height: 180px; position: relative;">
+                        <canvas id="routeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 搭子统计：左右结构 -->
+            <div style="display: flex; gap: 16px; margin-top: 20px;">
+                <!-- 左边：最佳搭子卡片 -->
+                <div style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 16px; padding: 20px;">
+                    <h3 style="font-size: 16px; color: var(--primary); margin-bottom: 16px; text-align: center;">🏆 最佳搭子</h3>
+                    <div id="bestPartner" style="text-align: center; padding: 20px 0;">
+                        <div style="color: var(--text-secondary);">暂无数据</div>
+                    </div>
+                </div>
+                
+                <!-- 右边：颁奖台 -->
+                <div style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 16px; padding: 20px;">
+                    <h3 style="font-size: 16px; color: var(--primary); margin-bottom: 16px; text-align: center;">🥇 搭子排行榜</h3>
+                    <div id="partnerPodium" style="display: flex; justify-content: center; align-items: flex-end; gap: 8px; height: 150px; padding: 10px;">
+                        <div style="color: var(--text-secondary);">暂无数据</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时初始化
+        window.onload = init;
+        
+        // 第1步：检查登录状态
+        async function checkLogin() {
+            // 检测是否通过文件协议访问
+            if (window.location.protocol === 'file:') {
+                alert('请通过服务器访问：运行 python app.py 后访问 http://localhost:5000/');
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/check_login');
+                if (response.status === 401 || response.redirected) {
+                    window.location.href = '/login.html';
+                    return false;
+                }
+                const data = await response.json();
+                if (!data.logged_in) {
+                    window.location.href = '/login.html';
+                    return false;
+                }
+                currentUsername = data.username || '';
+                // 显示用户名
+                if (currentUsername) {
+                    document.getElementById('userNameDisplay').textContent = currentUsername;
+                }
+                return true;
+            } catch (e) {
+                // 网络错误时也跳转到登录页
+                window.location.href = '/login.html';
+                return false;
+            }
+        }
+        
+        // 登出
+        async function logout() {
+            await fetch('/api/logout', {method: 'POST'});
+            window.location.href = '/';
+        }
+        
+        // 切换用户菜单显示
+        function toggleUserMenu() {
+            var menu = document.getElementById('userMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // 点击其他地方关闭菜单
+        document.addEventListener('click', function(e) {
+            var userInfo = document.getElementById('userInfo');
+            var menu = document.getElementById('userMenu');
+            if (userInfo && !userInfo.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+        
+        // 清空所有数据
+        async function clearAllData() {
+            if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
+            if (!confirm('再次确认：清空所有记录、岩馆和搭子？')) return;
+            
+            try {
+                await fetch('/api/records/clear', {method: 'POST'});
+                await fetch('/api/gyms/clear', {method: 'POST'});
+                await fetch('/api/partners/clear', {method: 'POST'});
+                
+                alert('数据已清空！');
+                window.location.reload();
+            } catch (e) {
+                alert('清空失败: ' + e.message);
+            }
+        }
+        
+        // 注册 Chart.js 插件
+        Chart.register(ChartDataLabels);
+        
+        let records = [];
+        let settings = { gyms: { '香蕉': [], 'cube': [], 'upper': [], '闪电': [], '其他': [] }, partners: [], maxGrade: 'V6' };
+        let currentUsername = '';
+        
+        // 初始化
+        async function init() {
+            const isLoggedIn = await checkLogin();
+            if (!isLoggedIn) return;
+            
+            // 加载数据
+            await loadSettings();
+            await loadRecords();
+            
+            // 渲染页面
+            currentDate = new Date();
+            document.getElementById('climbDate').value = new Date().toISOString().split('T')[0];
+            renderCalendar();
+        }
+        
+        // 从API加载设置
+        async function loadSettings() {
+            try {
+                const [gymsRes, partnersRes] = await Promise.all([
+                    fetch('/api/gyms'),
+                    fetch('/api/partners')
+                ]);
+                const gyms = await gymsRes.json();
+                const partners = await partnersRes.json();
+                
+                // 转换数据格式
+                const gymMap = { '香蕉': [], 'cube': [], 'upper': [], '闪电': [], '其他': [] };
+                gyms.forEach(g => {
+                    const cat = g.wall_type || '其他';
+                    if (!gymMap[cat]) gymMap[cat] = [];
+                    gymMap[cat].push(g.gym_name);
+                });
+                settings.gyms = gymMap;
+                settings.partners = partners.map(p => p.name);
+            } catch (e) {
+                console.error('加载设置失败', e);
+            }
+        }
+        
+        // 从API加载记录
+        async function loadRecords() {
+            try {
+                const response = await fetch('/api/records');
+                records = await response.json();
+            } catch (e) {
+                console.error('加载记录失败', e);
+            }
+        }
+        
+        let currentDate = new Date();
+        let selectedDate = null;
+        
+        document.getElementById('climbDate').value = new Date().toISOString().split('T')[0];
+        renderCalendar();
+        
+        function saveMaxGrade(value) {
+            settings.maxGrade = value;
+        }
+        
+        async function saveSettings() {
+            // 保存到API - 先清空再添加（避免重复）
+            try {
+                // 清空现有岩馆和搭子
+                await fetch('/api/gyms/clear', {method: 'POST'});
+                await fetch('/api/partners/clear', {method: 'POST'});
+                
+                // 重新添加所有岩馆
+                for (const cat in settings.gyms) {
+                    for (const gymName of settings.gyms[cat]) {
+                        await fetch('/api/gyms', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({gym_name: gymName, wall_type: cat})
+                        });
+                    }
+                }
+                
+                // 重新添加所有搭子
+                for (const name of settings.partners) {
+                    await fetch('/api/partners', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({name: name})
+                    });
+                }
+                
+                // 重新加载以获取最新数据
+                await loadSettings();
+            } catch (e) {
+                console.error('保存设置失败', e);
+            }
+            
+            renderSettings();
+            renderAddForm();
+        }
+        
+        function renderSettings() {
+            // 渲染品牌岩馆
+            const gymCategories = document.getElementById('gymCategories');
+            let html = '';
+            const categoryNames = { '香蕉': '🍌 香蕉', 'cube': '📦 cube', 'upper': '⬆️ upper', '闪电': '⚡ 闪电', '其他': '📍 其他' };
+            for (const cat in settings.gyms) {
+                html += '<div class="gym-category"><h4>' + (categoryNames[cat] || cat) + '</h4>';
+                html += '<div class="settings-list">';
+                settings.gyms[cat].forEach(function(g, i) {
+                    html += '<div class="settings-list-item"><span>' + g + '</span><button onclick="removeGym(\'' + cat + '\',' + i + ')">✕</button></div>';
+                });
+                html += '</div></div>';
+            }
+            gymCategories.innerHTML = html;
+            
+            // 渲染搭子
+            document.getElementById('partnerSettingsList').innerHTML = settings.partners.map(function(p, i) { return '<div class="settings-list-item"><span>' + p + '</span><button onclick="removePartner(' + i + ')">✕</button></div>'; }).join('');
+            
+            // 渲染最高级别
+            document.getElementById('maxGrade').value = settings.maxGrade || 'V6';
+        }
+        
+        function removeGym(category, index) {
+            settings.gyms[category].splice(index, 1);
+            saveSettings();
+        }
+        
+        function removePartner(index) {
+            settings.partners.splice(index, 1);
+            saveSettings();
+        }
+        
+        function removeGrade(index) {
+            settings.grades.splice(index, 1);
+            saveSettings();
+        }
+        
+        function addSetting(type) {
+            if (type === 'gym') {
+                const category = document.getElementById('gymCategorySetting').value;
+                const input = document.getElementById('newGymSetting');
+                const value = input.value.trim();
+                if (!value) return;
+                if (!settings.gyms[category].includes(value)) {
+                    settings.gyms[category].push(value);
+                    saveSettings();
+                }
+                input.value = '';
+            } else {
+                const input = document.getElementById('newPartnerSetting');
+                const value = input.value.trim();
+                if (!value) return;
+                if (!settings.partners.includes(value)) {
+                    settings.partners.push(value);
+                    saveSettings();
+                }
+                input.value = '';
+            }
+        }
+        
+        function removeSetting(type, index) {
+            settings[type + 's'].splice(index, 1);
+            saveSettings();
+        }
+        
+        function showSettings() {
+            renderSettings();
+            document.getElementById('settingsPage').classList.add('active');
+        }
+        
+        function closeSettings() {
+            document.getElementById('settingsPage').classList.remove('active');
+        }
+        
+        function showImportExport() {
+            document.getElementById('importExportModal').style.display = 'flex';
+        }
+        
+        function showFeedback() {
+            document.getElementById('feedbackModal').style.display = 'flex';
+            document.getElementById('feedbackText').value = '';
+            document.getElementById('feedbackImages').value = '';
+        }
+        
+        async function submitFeedback() {
+            var feedbackText = document.getElementById('feedbackText').value.trim();
+            if (!feedbackText) {
+                alert('请输入反馈内容');
+                return;
+            }
+            
+            var fileInput = document.getElementById('feedbackImages');
+            var files = fileInput.files;
+            
+            var formData = new FormData();
+            formData.append('text', feedbackText);
+            formData.append('username', currentUsername || '用户');
+            
+            for (var i = 0; i < files.length; i++) {
+                formData.append('images', files[i]);
+            }
+            
+            try {
+                var response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    body: formData
+                });
+                var result = await response.json();
+                if (result.success) {
+                    alert('反馈提交成功！感谢您的意见～');
+                    document.getElementById('feedbackModal').style.display = 'none';
+                } else {
+                    alert('提交失败: ' + (result.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('提交失败: ' + e.message);
+            }
+        }
+        
+        function renderAddForm() {
+            // 初始化岩馆品牌下拉
+            updateGymOptions();
+            
+            // 渲染搭子
+            const partnerList = document.getElementById('partnerList');
+            if (settings.partners.length > 0) {
+                partnerList.innerHTML = settings.partners.map(function(p) { return '<div class="partner-tag" data-value="' + p + '" onclick="togglePartnerTag(this)">' + p + '</div>'; }).join('');
+            } else {
+                partnerList.innerHTML = '<span style="color: var(--text-secondary); font-size: 14px;">请先在设置中添加搭子</span>';
+            }
+            
+            updateRouteOptions();
+        }
+        
+        function updateGymOptions() {
+            const category = document.getElementById('gymCategory').value;
+            const gymSelect = document.getElementById('gymName');
+            if (!category) {
+                gymSelect.innerHTML = '<option value="">请先选择品牌</option>';
+                return;
+            }
+            let optionsHtml = '';
+            if (settings.gyms[category] && settings.gyms[category].length > 0) {
+                settings.gyms[category].forEach(function(g) {
+                    optionsHtml += '<option value="' + g + '">' + g + '</option>';
+                });
+            } else {
+                optionsHtml = '<option value="">该品牌暂无岩馆</option>';
+            }
+            gymSelect.innerHTML = optionsHtml;
+        }
+        
+        function updateRouteOptions() {
+            var type = document.getElementById('climbType').value;
+            var routeTableBody = document.getElementById('routeTableBody');
+            var routeTableHTML = '';
+            
+            if (type === '抱石') {
+                var maxGrade = settings.maxGrade ? parseInt(settings.maxGrade.replace('V', '')) : 6;
+                var minGrade = 3;
+                for (var grade = maxGrade; grade >= minGrade; grade--) {
+                    routeTableHTML += '<tr><td>V' + grade + '</td><td><input type="number" min="0" data-grade="V' + grade + '" placeholder="0"></td></tr>';
+                }
+            } else {
+                var levels = ['5.11a', '5.10d', '5.10c', '5.10b', '5.10a', '5.9'];
+                levels.forEach(function(level) {
+                    routeTableHTML += '<tr><td>' + level + '</td><td><input type="number" min="0" data-grade="' + level + '" placeholder="0"></td></tr>';
+                });
+            }
+            routeTableBody.innerHTML = routeTableHTML;
+        }
+        
+        function togglePartnerTag(el) {
+            el.classList.toggle('selected');
+        }
+        
+        function renderCalendar() {
+            var year = currentDate.getFullYear();
+            var month = currentDate.getMonth();
+            
+            // 副标题静态显示，不需要更新
+            // document.getElementById('yearDisplay').textContent = year;
+            document.getElementById('currentMonth').textContent = year + '年' + (month + 1) + '月';
+            
+            var firstDay = new Date(year, month, 1).getDay();
+            var daysInMonth = new Date(year, month + 1, 0).getDate();
+            var today = new Date();
+            
+            var html = '';
+            for (var i = 0; i < firstDay; i++) {
+                html += '<div class="calendar-day empty"></div>';
+            }
+            
+            for (var day = 1; day <= daysInMonth; day++) {
+                var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                var dayRecords = records.filter(function(r) { return r.date === dateStr; });
+                var isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+                var hasRecord = dayRecords.length > 0;
+                
+                var gymLabels = '';
+                if (hasRecord) {
+                    dayRecords.forEach(function(r) {
+                        gymLabels += '<div class="day-gym">' + r.gym + '</div>';
+                    });
+                }
+                
+                html += '<div class="calendar-day ' + (isToday ? 'today' : '') + ' ' + (hasRecord ? 'has-record' : '') + '" onclick="showDetail(\'' + dateStr + '\')">' +
+                    '<div class="day-number">' + day + '</div>' +
+                    (hasRecord ? '<div class="day-labels">' + gymLabels + '</div>' : '') + '</div>';
+            }
+            document.getElementById('calendarGrid').innerHTML = html;
+        }
+        
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+        
+        function showDetail(dateStr) {
+            selectedDate = dateStr;
+            var date = new Date(dateStr);
+            document.getElementById('detailDate').textContent = date.getFullYear() + '年' + (date.getMonth() + 1) + '月' + date.getDate() + '日';
+            
+            var dayRecords = records.filter(function(r) { return r.date === dateStr; });
+            
+            if (dayRecords.length === 0) {
+                document.getElementById('detailRecords').innerHTML = '<p style="color: #8892b0; text-align: center; padding: 40px;">暂无记录</p>';
+            } else {
+                var recordsHtml = dayRecords.map(function(r, i) {
+                    var html = '<div class="record-item"><div class="gym-name">' + r.gym + '</div><div class="info"><div>时长: <span>' + (r.duration ? r.duration + 'h' : '不记着') + '</span></div><div>类型: <span>' + (r.type || '-') + '</span></div>';
+                    // routes 字段是 "V0-2, V1-3" 格式
+                    var routesStr = r.routes || r.grade || '';
+                    if (routesStr) {
+                        var routes = routesStr.split(',').map(function(rt) { return rt.trim(); }).filter(function(rt) { return rt; });
+                        html += '<div class="routes">' + routes.map(function(rt) { return '<span class="route-tag">' + rt + '</span>'; }).join('') + '</div>';
+                    }
+                    var partnerDisplay = r.partners || r.partner || '自己';
+                    if (typeof partnerDisplay === 'string') {
+                        partnerDisplay = partnerDisplay.split(',').map(function(p) { return p.trim(); });
+                    }
+                    if (Array.isArray(partnerDisplay)) partnerDisplay = partnerDisplay.join(', ');
+                    html += '<div class="partner">搭子: <span>' + partnerDisplay + '</span></div>';
+                    html += '</div>';
+                    html += '<div class="notes-row">';
+                    if (r.notes) {
+                        html += '<div class="notes">' + r.notes + '</div>';
+                    }
+                    html += '<div class="actions"><button class="edit-btn" onclick="editRecord(' + r.id + ')">✏️ 编辑</button><button class="delete-btn" onclick="deleteRecord(' + r.id + ')">🗑️ 删除</button></div>';
+                    html += '</div></div>';
+                    return html;
+                }).join('');
+                document.getElementById('detailRecords').innerHTML = '<div class="records-container">' + recordsHtml + '</div>';
+            }
+            document.getElementById('detailModal').classList.add('active');
+        }
+        
+        let editingRecordId = null; // 正在编辑的记录ID
+        
+        function editRecord(id) {
+            var record = records.find(function(r) { return r.id === id; });
+            if (!record) return;
+            
+            editingRecordId = id; // 保存被编辑记录的ID
+            
+            // 修改标题为"编辑打卡记录"
+            document.querySelector('#addModal .modal-header h2').textContent = '✏️ 编辑打卡记录';
+            
+            // 加载岩馆和搭子选项
+            renderAddForm();
+            
+            // 填充表单
+            // 根据岩馆名推算品牌并设置
+            var foundCategory = '';
+            for (var cat in settings.gyms) {
+                if (settings.gyms[cat].includes(record.gym)) {
+                    foundCategory = cat;
+                    break;
+                }
+            }
+            document.getElementById('gymCategory').value = foundCategory;
+            updateGymOptions();
+            document.getElementById('gymName').value = record.gym;
+            document.getElementById('climbDate').value = record.date;
+            document.getElementById('duration').value = record.duration || '';
+            document.getElementById('climbType').value = record.type || '';
+            document.getElementById('notes').value = record.notes || '';
+            
+            // 更新线路选项
+            updateRouteOptions();
+            
+            // 填充线路数据
+            setTimeout(function() {
+                var routes = record.routes || '';
+                if (typeof routes === 'string') {
+                    routes = routes.split(', ').filter(function(rt) { return rt; });
+                }
+                (routes || []).forEach(function(rt) {
+                    var parts = rt.split('-');
+                    var grade = parts[0];
+                    var count = parts[1] || 1;
+                    var input = document.querySelector('#routeTableBody input[data-grade="' + grade + '"]');
+                    if (input) input.value = count;
+                });
+                
+                // 选中搭子
+                var partnerList = record.partners || record.partner || '';
+                if (typeof partnerList === 'string') {
+                    partnerList = partnerList.split(',').map(function(p) { return p.trim(); }).filter(function(p) { return p; });
+                }
+                document.querySelectorAll('#partnerList .partner-tag').forEach(function(tag) {
+                    if (Array.isArray(partnerList) && partnerList.includes(tag.dataset.value)) {
+                        tag.classList.add('selected');
+                    } else if (typeof partnerList === 'string' && partnerList.includes(tag.dataset.value)) {
+                        tag.classList.add('selected');
+                    } else {
+                        tag.classList.remove('selected');
+                    }
+                });
+            }, 100);
+            
+            // 不删除原记录，等待用户确认保存或取消
+            // 关闭详情弹窗，打开编辑弹窗
+            closeModal('detailModal');
+            document.getElementById('addModal').classList.add('active');
+        }
+        
+        function addRecordToDate() {
+            editingRecordId = null; // 重置编辑状态
+            // 修改标题为"添加打卡记录"
+            document.querySelector('#addModal .modal-header h2').textContent = '➕ 添加打卡记录';
+            renderAddForm();
+            document.getElementById('climbDate').value = selectedDate;
+            document.getElementById('addForm').reset();
+            document.getElementById('climbDate').value = selectedDate;
+            closeModal('detailModal');
+            document.getElementById('addModal').classList.add('active');
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        
+        document.getElementById('addForm').onsubmit = async function(e) {
+            e.preventDefault();
+            
+            var gym = document.getElementById('gymName').value.trim();
+            var date = document.getElementById('climbDate').value;
+            var durationInput = document.getElementById('duration').value.trim();
+            var duration = durationInput ? parseFloat(durationInput) : '';
+            var type = document.getElementById('climbType').value;
+            var notes = document.getElementById('notes').value.trim();
+            
+            var routes = [];
+            document.querySelectorAll('#routeTableBody input').forEach(function(input) {
+                var count = parseInt(input.value) || 0;
+                routes.push(input.dataset.grade + '-' + count);
+            });
+            // 过滤掉全是0的路线
+            routes = routes.filter(function(r) { return !r.endsWith('-0'); });
+            
+            var partners = [];
+            document.querySelectorAll('#partnerList .partner-tag.selected').forEach(function(tag) {
+                partners.push(tag.dataset.value);
+            });
+            
+            var recordData = {
+                gym: gym,
+                date: date,
+                routes: routes.join(', '),
+                type: type,
+                duration: duration,
+                partners: partners.join(', '),
+                notes: notes
+            };
+            
+            try {
+                if (editingRecordId) {
+                    // 编辑模式
+                    await fetch('/api/records/' + editingRecordId, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(recordData)
+                    });
+                } else {
+                    // 新增模式
+                    await fetch('/api/records', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(recordData)
+                    });
+                }
+                
+                // 重新加载记录
+                await loadRecords();
+                renderCalendar();
+                closeModal('addModal');
+                editingRecordId = null;
+                showDetail(date);
+            } catch (err) {
+                alert('保存失败');
+                console.error(err);
+            }
+        };
+        
+        // 取消按钮：直接关闭弹窗，不保存
+        document.querySelector('#addModal .btn-cancel').onclick = function() {
+            closeModal('addModal');
+            editingRecordId = null;
+        };
+        
+        async function deleteRecord(id) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+            
+            try {
+                await fetch('/api/records/' + id, {method: 'DELETE'});
+                await loadRecords();
+                renderCalendar();
+                showDetail(selectedDate);
+            } catch (err) {
+                alert('删除失败');
+            }
+        }
+        
+        function saveData() {
+            // 不再使用 localStorage
+        }
+        
+        async function exportData() {
+            // 导出全部数据：调用API
+            try {
+                const response = await fetch('/api/export');
+                const data = await response.json();
+                
+                var dataStr = JSON.stringify(data, null, 2);
+                var blob = new Blob([dataStr], { type: 'application/json' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = '爬墙记录_' + new Date().toISOString().split('T')[0] + '.json';
+                a.click();
+            } catch (e) {
+                alert('导出失败');
+            }
+        }
+        
+        async function handleImport(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    var imported = JSON.parse(e.target.result);
+                    
+                    // 调用API导入
+                    var response = await fetch('/api/import', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(imported)
+                    });
+                    var result = await response.json();
+                    
+                    if (!result.success) {
+                        alert('导入失败: ' + (result.error || '未知错误'));
+                        return;
+                    }
+                    
+                    // 重新加载数据
+                    await loadRecords();
+                    await loadSettings();
+                    
+                    renderCalendar();
+                    renderSettings();
+                    renderAddForm();
+                    alert('导入成功！');
+                } catch (err) {
+                    alert('导入失败: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function showStats() {
+            document.getElementById('statsPage').classList.add('active');
+            var today = new Date();
+            var thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            document.getElementById('statsStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('statsEndDate').value = today.toISOString().split('T')[0];
+            // 延迟一点等待页面渲染
+            setTimeout(updateStats, 100);
+        }
+        
+        function closeStats() {
+            document.getElementById('statsPage').classList.remove('active');
+        }
+        
+        function updateStats() {
+            var startDate = document.getElementById('statsStartDate').value;
+            var endDate = document.getElementById('statsEndDate').value;
+            var filtered = records.filter(function(r) { return r.date >= startDate && r.date <= endDate; });
+            
+            // 1. 总次数和频率 - 同一岩馆同一天只统计1次
+            var totalDaysSet = new Set();
+            filtered.forEach(function(r) {
+                totalDaysSet.add(r.gym + '_' + r.date);
+            });
+            var totalCount = totalDaysSet.size;
+            var daysDiff = Math.max(1, (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+            var weeks = daysDiff / 7;
+            var frequency = weeks > 0 ? (totalCount / weeks).toFixed(2) : '0.00';
+            
+            document.getElementById('totalCount').textContent = totalCount;
+            document.getElementById('frequency').textContent = frequency;
+            
+            // 2. 岩馆统计（柱状图）- 只展示次数>0的，同一岩馆同一天只统计1次
+            // 先找出每个岩馆有哪些不同的日期
+            var gymDaysMap = {};
+            filtered.forEach(function(r) {
+                if (!gymDaysMap[r.gym]) gymDaysMap[r.gym] = new Set();
+                gymDaysMap[r.gym].add(r.date);
+            });
+            
+            // 岩馆颜色配置（按品牌）- 使用settings中的品牌
+            function getGymColor(gymName) {
+                // 遍历settings.gyms找到品牌
+                for (var brand in settings.gyms) {
+                    if (settings.gyms[brand].includes(gymName)) {
+                        // 品牌对应颜色
+                        var brandColors = {
+                            '香蕉': '#ffd32a',    // 黄色
+                            'cube': '#1e90ff',    // 蓝色
+                            'upper': '#ff4757',   // 红色
+                            '闪电': '#8e44ad',    // 紫色
+                            '其他': '#2ed573'     // 绿色
+                        };
+                        return brandColors[brand] || '#e94560';
+                    }
+                }
+                return '#e94560'; // 默认粉色
+            }
+            
+            var gymArray = Object.keys(gymDaysMap)
+                .map(function(g) { return { gym: g, count: gymDaysMap[g].size }; })
+                .sort(function(a, b) { return b.count - a.count; })
+                .filter(function(item) { return item.count > 0; });
+            
+            // 取Top5（如果出现并列，则并列的全部展示）
+            var top5Count = gymArray.length > 0 ? gymArray[4].count : 0; // 第5名的数量
+            var gymTop5 = gymArray.filter(function(g) { return g.count >= top5Count || gymArray.indexOf(g) < 5; });
+            if (gymArray.length > 5 && top5Count > 0) {
+                // 有并列情况，取所有并列的
+                gymTop5 = gymArray.filter(function(g) { return g.count >= top5Count; });
+            } else {
+                gymTop5 = gymArray.slice(0, 5);
+            }
+            
+            // 渲染岩馆柱状图（Top5）
+            var gymCtx = document.getElementById('gymChart').getContext('2d');
+            if (typeof Chart === 'undefined') {
+                document.getElementById('gymChart').parentElement.innerHTML = '<p style="color:#8892b0;text-align:center;padding:40px;">图表库加载中...</p>';
+                return;
+            }
+            if (window.gymChartInstance) window.gymChartInstance.destroy();
+            window.gymChartInstance = new Chart(gymCtx, {
+                type: 'bar',
+                data: {
+                    labels: gymTop5.map(function(g) { return g.gym; }),
+                    datasets: [{
+                        label: '次数',
+                        data: gymTop5.map(function(g) { return g.count; }),
+                        backgroundColor: gymArray.map(function(g) { 
+                            return getGymColor(g.gym) + 'aa'; // 添加透明度
+                        }),
+                        borderColor: gymArray.map(function(g) { 
+                            return getGymColor(g.gym);
+                        }),
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + '次';
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 4,
+                            color: '#ffffff',
+                            font: { size: 11, weight: 'bold' },
+                            formatter: function(value) {
+                                return value;
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { 
+                                color: '#8892b0',
+                                stepSize: 1,
+                                padding: 10
+                            },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            suggestedMax: function(context) {
+                                var max = Math.max(...context.chart.data.datasets[0].data);
+                                return max + 2;
+                            }
+                        },
+                        x: {
+                            ticks: { color: '#8892b0', font: { size: 11 } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+            
+            // 3. 过线记录统计（环状图）- 每个级别的数量是每次记录中该级别过线数量的总和
+            var routeStats = {};
+            filtered.forEach(function(r) {
+                // routes 现在是字符串 "V0-2, V1-3"，需要先分割
+                var routesStr = r.routes || '';
+                var routesList = routesStr.split(',').map(function(rt) { return rt.trim(); }).filter(function(rt) { return rt; });
+                routesList.forEach(function(rt) {
+                    var match = rt.match(/V(\d+)(?:-(\d+))?/);
+                    if (match) {
+                        var grade = 'V' + match[1];
+                        var count = match[2] ? parseInt(match[2]) : 1; // 如果格式是 V3-2，则count=2，否则count=1
+                        routeStats[grade] = (routeStats[grade] || 0) + count;
+                    }
+                });
+            });
+            var routeArray = Object.keys(routeStats)
+                .map(function(g) { return { grade: g, count: routeStats[g] }; })
+                .sort(function(a, b) { 
+                    var aNum = parseInt(a.grade.replace('V', ''));
+                    var bNum = parseInt(b.grade.replace('V', ''));
+                    return bNum - aNum; 
+                });
+            
+            // 渲染过线环状图
+            var routeCtx = document.getElementById('routeChart').getContext('2d');
+            if (window.routeChartInstance) window.routeChartInstance.destroy();
+            
+            var routeColors = {
+                'V3': '#ffd32a',  // 黄色
+                'V4': '#ff4757',  // 红色
+                'V5': '#1e90ff',  // 蓝色
+                'V6': '#8e44ad'   // 紫色
+            };
+            
+            window.routeChartInstance = new Chart(routeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: routeArray.map(function(r) { return r.grade; }),
+                    datasets: [{
+                        data: routeArray.map(function(r) { return r.count; }),
+                        backgroundColor: routeArray.map(function(r) { return routeColors[r.grade] || '#888888'; }),
+                        borderColor: '#0f0f23',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            position: 'right',
+                            labels: { 
+                                color: '#ffffff', 
+                                font: { size: 13 },
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '条';
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: '#ffffff',
+                            font: { size: 11, weight: 'bold' },
+                            formatter: function(value) {
+                                return value + '条';
+                            },
+                            anchor: function(context) {
+                                return 'center';
+                            },
+                            align: function(context) {
+                                return 'center';
+                            },
+                            offset: 20,
+                            backgroundColor: function(context) {
+                                return '#1a1a2eaa';
+                            },
+                            borderRadius: 4,
+                            padding: 4
+                        }
+                    },
+                    cutout: '60%'
+                },
+                plugins: [ChartDataLabels]
+            });
+            
+            // 4. 搭子统计 - 统计方法：同一天同一个岩馆出现多次，只算1次
+            // 注意：自己去不计入统计
+            
+            // 先去重：同一天同一个岩馆只保留一条记录
+            var uniqueRecordsMap = {}; // { "岩馆_日期": record }
+            filtered.forEach(function(r) {
+                var key = r.gym + '_' + r.date;
+                uniqueRecordsMap[key] = r;
+            });
+            var uniqueRecords = Object.values(uniqueRecordsMap);
+            
+            var partnerDaysMap = {}; // { "搭子名": Set(岩馆_日期) }
+            
+            uniqueRecords.forEach(function(r) {
+                var dayKey = r.gym + '_' + r.date; // 同一个岩馆同一天算1次
+                // partners 现在是字符串，用逗号分隔
+                var partnerStr = r.partners || '';
+                if (typeof partnerStr === 'string') {
+                    // 先去重：同一记录中同一个搭子只算一次
+                    var partnerList = partnerStr.split(',').map(function(p) { return p.trim(); }).filter(function(p) { return p && p.trim() !== ''; });
+                    partnerList = [...new Set(partnerList)]; // 去重
+                    partnerStr = partnerList;
+                }
+                (partnerStr || []).forEach(function(p) {
+                    // 排除"自己去"
+                    if (p && p !== '自己去' && p.trim() !== '') {
+                        if (!partnerDaysMap[p]) partnerDaysMap[p] = new Set();
+                        partnerDaysMap[p].add(dayKey);
+                    }
+                });
+            });
+            
+            var partnerArray = Object.keys(partnerDaysMap)
+                .map(function(p) { return { partner: p, count: partnerDaysMap[p].size }; })
+                .sort(function(a, b) { return b.count - a.count; });
+            
+            // 左边最佳搭子卡片
+            var bestPartnerEl = document.getElementById('bestPartner');
+            if (partnerArray.length > 0) {
+                var best = partnerArray[0];
+                bestPartnerEl.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 16px;">' +
+                    '<div style="font-size: 42px;">🏆</div>' +
+                    '<div style="display: flex; flex-direction: column; align-items: flex-start;">' +
+                    '<div style="font-size: 22px; font-weight: bold; color: #ffd700;">' + best.partner + '</div>' +
+                    '<div style="font-size: 16px; color: #ffd700;">🥇 ' + best.count + '次</div>' +
+                    '</div>' +
+                    '</div>';
+            } else {
+                bestPartnerEl.innerHTML = '<div style="color: var(--text-secondary);">暂无数据</div>';
+            }
+            
+            // 右边颁奖台
+            var podiumEl = document.getElementById('partnerPodium');
+            if (partnerArray.length > 0) {
+                // 按次数排序后，取前3名
+                var firstCount = partnerArray[0].count;
+                var secondCount = partnerArray.length > 1 ? partnerArray[1].count : 0;
+                var thirdCount = partnerArray.length > 2 ? partnerArray[2].count : 0;
+                
+                // 找出每个名次的搭子
+                var gold = partnerArray.filter(function(p) { return p.count === firstCount; });
+                var silver = partnerArray.length > 1 ? partnerArray.slice(1).filter(function(p) { return p.count === secondCount && secondCount < firstCount; }) : [];
+                var bronze = partnerArray.length > 2 ? partnerArray.slice(2).filter(function(p) { return p.count === thirdCount && thirdCount < secondCount && thirdCount < firstCount; }) : [];
+                
+                // 格式化搭子显示名称
+                function formatPartners(partnerList, count) {
+                    if (partnerList.length === 0) return '';
+                    if (partnerList.length === 1) {
+                        return partnerList[0].partner + '<br>（' + count + '次）';
+                    } else if (partnerList.length < 3) {
+                        return partnerList.map(function(p) { return p.partner; }).join('、') + '<br>（' + count + '次）';
+                    } else {
+                        return partnerList[0].partner + '等' + partnerList.length + '人<br>（' + count + '次）';
+                    }
+                }
+                
+                var podiumHtml = '';
+                
+                // 三个台子：铜（金下面）、金（中间最高）、银（金上面）
+                podiumHtml += '<div style="display: flex; justify-content: center; align-items: flex-end; gap: 12px; height: 100%;">';
+                
+                // 铜（第3名）- 放在最左边，最矮
+                if (bronze.length > 0) {
+                    var bronzeHeight = thirdCount / firstCount * 80;
+                    podiumHtml += '<div style="display: flex; flex-direction: column; align-items: center; width: 50px;">';
+                    podiumHtml += '<div style="font-size: 11px; color: #cd7f32; margin-bottom: 4px; text-align: center; word-break: break-all;">' + formatPartners(bronze, thirdCount) + '</div>';
+                    podiumHtml += '<div style="width: 100%; height: ' + bronzeHeight + 'px; background: linear-gradient(180deg, #cd7f32 0%, #a0522d 100%); border-radius: 8px 8px 0 0;"></div>';
+                    podiumHtml += '<div style="font-size: 12px; color: #cd7f32; margin-top: 4px;">🥉</div>';
+                    podiumHtml += '</div>';
+                }
+                
+                // 金（第1名）- 中间，最高
+                if (gold.length > 0) {
+                    var goldHeight = 80;
+                    podiumHtml += '<div style="display: flex; flex-direction: column; align-items: center; width: 60px;">';
+                    podiumHtml += '<div style="font-size: 12px; color: #ffd700; margin-bottom: 4px; text-align: center; word-break: break-all;">' + formatPartners(gold, firstCount) + '</div>';
+                    podiumHtml += '<div style="width: 100%; height: ' + goldHeight + 'px; background: linear-gradient(180deg, #ffd700 0%, #cc9900 100%); border-radius: 8px 8px 0 0;"></div>';
+                    podiumHtml += '<div style="font-size: 14px; margin-top: 4px;">🥇</div>';
+                    podiumHtml += '</div>';
+                }
+                
+                // 银（第2名）- 放在最右边
+                if (silver.length > 0) {
+                    var silverHeight = secondCount / firstCount * 80;
+                    podiumHtml += '<div style="display: flex; flex-direction: column; align-items: center; width: 50px;">';
+                    podiumHtml += '<div style="font-size: 11px; color: #c0c0c0; margin-bottom: 4px; text-align: center; word-break: break-all;">' + formatPartners(silver, secondCount) + '</div>';
+                    podiumHtml += '<div style="width: 100%; height: ' + silverHeight + 'px; background: linear-gradient(180deg, #c0c0c0 0%, #a0a0a0 100%); border-radius: 8px 8px 0 0;"></div>';
+                    podiumHtml += '<div style="font-size: 12px; color: #c0c0c0; margin-top: 4px;">🥈</div>';
+                    podiumHtml += '</div>';
+                }
+                
+                podiumHtml += '</div>';
+                podiumEl.innerHTML = podiumHtml;
+            } else {
+                podiumEl.innerHTML = '<div style="color: var(--text-secondary);">暂无数据</div>';
+            }
+        }
+    </script>
+    
+    <!-- 意见反馈弹窗 -->
+    <div class="import-export-modal" id="feedbackModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:3000; align-items:center; justify-content:center; padding:20px;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>💬 意见反馈</h2>
+                <button class="modal-close" onclick="document.getElementById('feedbackModal').style.display='none'">×</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <textarea id="feedbackText" placeholder="请输入您的意见或建议..." style="width: 100%; height: 120px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a2e; color: #fff; font-size: 14px; resize: none;"></textarea>
+                <div style="margin-top: 15px;">
+                    <label style="display: block; margin-bottom: 8px; color: #8892b0;">上传图片（可多选）：</label>
+                    <input type="file" id="feedbackImages" accept="image/*" multiple style="color: #8892b0;">
+                </div>
+                <button class="btn" onclick="submitFeedback()" style="margin-top: 20px; width: 100%;">提交反馈</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="import-export-modal" id="importExportModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:3000; align-items:center; justify-content:center; padding:20px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📤 导入/导出数据</h2>
+                <button class="modal-close" onclick="document.getElementById('importExportModal').style.display='none'">×</button>
+            </div>
+            <div class="modal-body" style="text-align:center; padding: 30px 20px;">
+                <div style="display:flex; flex-direction:column; gap: 12px;">
+                    <button class="btn" onclick="exportData()">📤 导出全部数据</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 导入数据</button>
+                </div>
+                <input type="file" id="importFile" style="display:none" accept=".json" onchange="handleImport(event)">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧗 抱石日历 - 登录</title>
+    <style>
+        :root {
+            --primary: #e94560;
+            --primary-gradient: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+            --bg-dark: #0f0f23;
+            --bg-card: rgba(255, 255, 255, 0.08);
+            --text: #fff;
+            --text-secondary: #8892b0;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text);
+        }
+        
+        .container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: -2px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--bg-dark);
+            color: var(--text);
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        input::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(233, 69, 96, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff6b6b;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+        
+        .success {
+            background: rgba(0, 255, 0, 0.2);
+            color: #6bff6b;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        
+        .form-content {
+            display: none;
+        }
+        
+        .form-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧗 抱石日历</h1>
+        
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="login">登录</div>
+            <div class="tab" data-tab="register">注册</div>
+        </div>
+        
+        <!-- 登录表单 -->
+        <div class="form-content active" id="login-form">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="login-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码">
+            </div>
+            <button onclick="login()">登录</button>
+        </div>
+        
+        <!-- 注册表单 -->
+        <div class="form-content" id="register-form">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="register-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="register-password" placeholder="请输入密码">
+            </div>
+            <div class="form-group">
+                <label>确认密码</label>
+                <input type="password" id="register-password2" placeholder="请再次输入密码">
+            </div>
+            <button onclick="register()">注册</button>
+        </div>
+    </div>
+
+    <script>
+        // 切换标签页
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.form-content').forEach(f => f.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + '-form').classList.add('active');
+                
+                hideMessages();
+            });
+        });
+        
+        function showError(msg) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+        }
+        
+        function showSuccess(msg) {
+            const successEl = document.getElementById('success');
+            successEl.textContent = msg;
+            successEl.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+        
+        function hideMessages() {
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+        }
+        
+        // 登录
+        async function login() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            
+            if (!username || !password) {
+                showError('请填写用户名和密码');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('登录成功！正在跳转...');
+                    setTimeout(() => {
+                        window.location.href = '/calendar.html';
+                    }, 1000);
+                } else {
+                    showError(data.error || '登录失败');
+                }
+            } catch (e) {
+                showError('网络错误，请稍后重试');
+            }
+        }
+        
+        // 注册
+        async function register() {
+            const username = document.getElementById('register-username').value.trim();
+            const password = document.getElementById('register-password').value;
+            const password2 = document.getElementById('register-password2').value;
+            
+            if (!username || !password) {
+                showError('请填写用户名和密码');
+                return;
+            }
+            
+            if (password !== password2) {
+                showError('两次输入的密码不一致');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('密码长度至少6位');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('注册成功！正在跳转...');
+                    setTimeout(() => {
+                        window.location.href = '/calendar.html';
+                    }, 1000);
+                } else {
+                    showError(data.error || '注册失败');
+                }
+            } catch (e) {
+                showError('网络错误，请稍后重试');
+            }
+        }
+        
+        // 回车登录
+        document.getElementById('login-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        
+        // 检查是否通过文件协议访问
+        if (window.location.protocol === 'file:') {
+            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;flex-direction:column;gap:20px;font-family:sans-serif;"><h1>请通过服务器访问</h1><p>运行以下命令启动服务器：</p><pre style="background:#222;padding:20px;border-radius:8px;">cd C:\\Users\\11985\\.openclaw\\workspace\\climbing-calendar\npy -3 app.py</pre><p>然后访问：<a href="http://localhost:5000/" style="color:#e94560;">http://localhost:5000/</a></p></div>';
+        }
+        
+        // 检查是否通过文件协议访问
+        if (window.location.protocol === 'file:') {
+            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;flex-direction:column;gap:20px;font-family:sans-serif;background:#0f0f23;padding:20px;"><h1>请通过服务器访问</h1><p>运行以下命令启动服务器：</p><pre style="background:#222;padding:20px;border-radius:8px;">cd C:\\Users\\11985\\.openclaw\\workspace\\climbing-calendar\npy -3 app.py</pre><p>然后访问：<a href="http://localhost:5000/" style="color:#e94560;">http://localhost:5000/</a></p></div>';
+        }
+        
+        // 检查是否已登录
+        async function checkLogin() {
+            try {
+                const response = await fetch('/api/check_login');
+                // 即使返回401也要继续处理
+                if (response.status === 401) {
+                    return false;
+                }
+                const data = await response.json();
+                if (data.logged_in) {
+                    window.location.href = '/calendar.html';
+                }
+                return false;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        checkLogin();
+    </script>
+</body>
+</html>
