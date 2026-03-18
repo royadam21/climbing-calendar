@@ -258,6 +258,11 @@ def index():
     """登录页面"""
     return app.send_static_file('login.html')
 
+@app.route('/login.html')
+def login_page():
+    """登录页面（兼容）"""
+    return app.send_static_file('login.html')
+
 @app.route('/calendar.html')
 def calendar():
     """主页面"""
