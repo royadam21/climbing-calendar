@@ -4,6 +4,193 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🧗‍♀️ 爬墙记录</title>
+    <style>
+    /* ===== 移动端响应式适配 ===== */
+    @media (max-width: 768px) {
+        /* 基础调整 */
+        body { padding-bottom: 100px; }
+        
+        /* 头部 */
+        .header { padding: 15px; }
+        .header h1 { font-size: 20px; }
+        .header .year { font-size: 12px; }
+        .header-actions { top: 10px; right: 10px; }
+        .settings-btn { width: 36px; height: 36px; font-size: 16px; }
+        
+        /* 月份导航 */
+        .month-nav { padding: 2px 10px 10px 5px; gap: 15px; }
+        .month-nav button { width: 36px; height: 36px; font-size: 16px; }
+        .month-nav .current-month { font-size: 18px; min-width: 120px; }
+        
+        /* 日历网格 */
+        .calendar { padding: 0 10px; }
+        .calendar-day { height: 80px; padding: 6px; }
+        .day-number { font-size: 12px; }
+        .day-gym { font-size: 11px; padding: 2px 4px; }
+        
+        /* 统计按钮 */
+        .stats-btn { bottom: 15px; right: 15px; width: 50px; height: 50px; font-size: 20px; }
+        
+        /* 弹窗 */
+        .modal { padding: 10px; }
+        .modal-content { 
+            max-width: 100% !important; 
+            width: 95% !important;
+            max-height: 85vh;
+            border-radius: 16px;
+        }
+        .modal-header { padding: 12px 16px; }
+        .modal-header h2 { font-size: 16px; }
+        .modal-body { padding: 16px; }
+        .modal-footer { 
+            padding: 12px 16px; 
+            flex-direction: row !important; 
+            gap: 10px;
+        }
+        .modal-footer .btn { margin-top: 0; flex: 1; }
+        .modal-footer .btn-cancel { 
+            background: rgba(255,255,255,0.1) !important; 
+            border: 1px solid var(--border) !important; 
+            color: #fff !important; 
+        }
+        
+        /* 表单 */
+        .form-group { margin-bottom: 12px; }
+        .form-group label { font-size: 13px; }
+        .form-group input, .form-group select, .form-group textarea { 
+            padding: 12px 10px; 
+            font-size: 16px; /* 防止iOS自动缩放 */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+        }
+        
+        /* 下拉选项适配 */
+        .form-group select { width: 100%; box-sizing: border-box; }
+        
+        /* 按钮 - 触摸友好 */
+        .btn { 
+            padding: 14px; 
+            font-size: 16px; 
+            min-height: 48px; /* 触摸友好最小高度 */
+        }
+        .btn-cancel { padding: 14px; }
+        
+        /* 记录项 */
+        .record-item { padding: 12px; }
+        .record-item .gym-name { font-size: 15px; }
+        .record-item .info { font-size: 12px; grid-template-columns: 1fr; gap: 4px; }
+        .record-item .partner { font-size: 12px; }
+        .record-item .routes { gap: 4px; }
+        .route-tag { font-size: 11px; padding: 3px 8px; }
+        
+        /* 设置页面 */
+        .settings-page, .stats-page { z-index: 3000; }
+        .settings-header, .stats-header { padding: 15px; }
+        .settings-header h2, .stats-header h2 { font-size: 18px; }
+        .settings-content, .stats-content { padding: 2px 10px 10px 10px; }
+        .settings-section, .stats-section { padding: 15px; margin-bottom: 15px; }
+        .settings-section h3, .stats-section h3 { font-size: 15px; margin-bottom: 12px; }
+        
+        /* 设置项 */
+        .settings-list-item { padding: 6px 10px; }
+        .settings-list-item span { font-size: 13px; }
+        .partner-tag { padding: 8px 12px; font-size: 13px; }
+        .partner-checkbox-item { padding: 8px 12px; font-size: 14px; }
+        
+        /* 添加项 */
+        .add-item { flex-direction: column; }
+        .add-item input { width: 100%; }
+        .add-item button { width: 100%; }
+        .add-item select { width: 100%; }
+        
+        /* 导入导出 */
+        .import-export { flex-direction: column; }
+        .import-export button { width: 100%; }
+        
+        /* 路线表格 */
+        .route-table { font-size: 13px; }
+        .route-table th, .route-table td { padding: 6px 4px; }
+        
+        /* 图表容器 */
+        .chart-container { width: 100%; overflow-x: hidden; }
+        
+        /* 用户名展示 */
+        .user-info { font-size: 14px; }
+        
+        /* ===== 移动端日历红点样式 ===== */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .calendar-grid { gap: 3px; }
+            .calendar-day { height: auto !important; aspect-ratio: 3 / 4 !important; padding: 4px !important; min-height: 0 !important; }
+            .calendar-day.has-record { cursor: pointer; }
+            .calendar-day .day-gym { display: none !important; }
+            .calendar-day .day-labels { display: none !important; }
+            .calendar-day.has-record::after {
+                content: '';
+                display: block;
+                width: 10px;
+                height: 10px;
+                background: var(--primary);
+                border-radius: 50%;
+                margin-top: auto;
+                margin-bottom: 2px;
+                box-shadow: 0 0 8px rgba(233, 69, 96, 0.6);
+            }
+            .day-number { font-size: 11px !important; }
+            
+            /* 记录弹窗按钮调整 */
+            .record-item .actions { gap: 6px; }
+            .edit-btn, .delete-btn { padding: 5px 10px !important; font-size: 11px !important; }
+            
+            /* 表单下拉框和输入框宽度适配 */
+            .form-group select, .form-group input, .form-group textarea {
+                width: 100% !important;
+                box-sizing: border-box;
+            }
+            
+            /* 统计按钮悬浮底部 */
+            .stats-btn {
+                position: sticky !important;
+                bottom: 20px !important;
+                float: right;
+                margin-top: -60px;
+            }
+            
+            /* 任务2：统计看板搭子统计改为竖排 */
+            .stats-page > .stats-content > div[style*="flex"] {
+                flex-direction: column !important;
+            }
+            .stats-page > .stats-content > div[style*="flex"] > div {
+                width: 100% !important;
+                margin-bottom: 12px !important;
+            }
+        }
+    }
+    
+    /* 更小屏幕 */
+    @media (max-width: 480px) {
+        .header h1 { font-size: 18px; }
+        .calendar-grid { gap: 2px; }
+        .calendar-day { height: auto !important; aspect-ratio: 3 / 4 !important; padding: 3px !important; }
+        .day-gym { font-size: 10px; }
+        .month-nav .current-month { font-size: 16px; min-width: 100px; }
+        .modal-content { width: 98% !important; }
+        
+        /* 记录项信息改为垂直布局 */
+        .record-item .info { grid-template-columns: 1fr; }
+        
+        /* 记录弹窗按钮调整 */
+        .record-item .actions { gap: 4px; }
+        .edit-btn, .delete-btn { padding: 4px 8px !important; font-size: 10px !important; min-height: 28px !important; }
+    }
+    
+    /* 触摸设备优化 */
+    @media (hover: none) and (pointer: coarse) {
+        button, .btn, .settings-btn, .month-nav button {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        a, button { -webkit-tap-highlight-color: transparent; }
+    }
+    </style>
     <script src="https://lib.baomitu.com/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://lib.baomitu.com/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
     <style>
@@ -33,7 +220,8 @@
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
         .calendar-day { background: var(--bg-card); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; height: 100px; }
         .calendar-day.empty { background: transparent; cursor: default; }
-        .calendar-day.today { border-color: var(--primary); box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
+        .calendar-day.today { border: 2px solid var(--primary); box-shadow: 0 0 15px rgba(233, 69, 96, 0.4); }
+        .calendar-day.future-day { opacity: 0.4; pointer-events: none; }
         .calendar-day.has-record { background: rgba(233, 69, 96, 0.15); }
         .day-number { font-size: 14px; font-weight: bold; text-align: center; }
         .day-gym { font-size: 14px; color: #fff; background: var(--primary); padding: 4px 6px; border-radius: 10px; display: block; text-align: center; margin: 2px 0; }
@@ -46,13 +234,35 @@
         .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
         .modal-footer { padding: 15px 24px; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 10px; }
         .modal-footer .btn { margin-top: 0; flex: 1; }
-        .btn-cancel { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-cancel { background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: #fff; }
         .modal-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; z-index: 10; }
         .modal h2 { margin-bottom: 20px; font-size: 18px; }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; box-sizing: border-box; }
         .form-group select option { background: #1a1a2e; color: var(--text); }
+        
+        /* 修复下拉列表宽度超出问题 */
+        .form-group select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        
+        /* 移动端下拉选项优化 */
+        @media (max-width: 768px) {
+            .form-group select, .form-group input, .form-group textarea {
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                min-width: 0 !important;
+            }
+            .form-group select option {
+                max-width: 100% !important;
+                width: max-content !important;
+                padding: 8px;
+            }
+        }
         .btn { width: 100%; padding: 14px; background: var(--primary-gradient); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-secondary { background: var(--bg-card); border: 1px solid var(--border); }
         .record-item { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 8px; display: flex; flex-direction: column; border: 1px solid var(--border); width: 100%; box-sizing: border-box; }
@@ -78,7 +288,7 @@
         .stats-header, .settings-header, .stats-header { display: flex; align-items: center; justify-content: space-between; padding: 20px; background: rgba(233, 69, 96, 0.1); flex-wrap: wrap; gap: 10px; }
         .settings-header h2, .stats-header h2 { font-size: 20px; }
         .settings-header button, .stats-header button { background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
-        .settings-content, .stats-content { padding: 20px; }
+        .settings-content, .stats-content { padding: 2px 10px 10px 10px; }
         .settings-section, .stats-section { background: var(--bg-card); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
         .gym-category { margin-bottom: 16px; }
         .gym-category h4 { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
@@ -117,18 +327,20 @@
                     <span id="userNameDisplay" style="font-size: 14px; color: var(--text);"></span>
                     <span style="font-size: 10px; color: var(--text-secondary);">▼</span>
                 </div>
-                <div id="userMenu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; min-width: 120px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000;">
-                    <div onclick="logout()" style="padding: 10px 16px; color: #ff6b6b; cursor: pointer; font-size: 14px;">退出登录</div>
+                <div id="userMenu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: #1a1a2e; border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 9999; text-align: left;">
+                    <div onclick="showImportExport()" style="padding: 10px 16px; color: var(--text); cursor: pointer; font-size: 14px; text-align: left;">📤 导入导出数据</div>
+                    <div onclick="clearAllData()" style="padding: 10px 16px; color: #ff6b6b; cursor: pointer; font-size: 14px; text-align: left;">🗑️ 清空数据</div>
+                    <div onclick="showFeedback()" style="padding: 10px 16px; color: var(--text); cursor: pointer; font-size: 14px; text-align: left;">💬 意见反馈</div>
+                    <div onclick="logout()" style="padding: 10px 16px; color: #ff6b6b; cursor: pointer; font-size: 14px; text-align: left;">🚪 退出登录</div>
                 </div>
             </div>
         </div>
         <h1>🧗‍♀️ 爬墙记录</h1>
         <div class="year" id="yearDisplay">努力总会有回报！</div>
         <div class="header-actions">
-            <button class="settings-btn" onclick="showFeedback()" title="意见反馈">💬</button>
-            <button class="settings-btn" onclick="showImportExport()" title="导入/导出">📤</button>
-            <button class="settings-btn" onclick="showSettings()" title="设置">⚙️</button>
-            <button class="settings-btn" onclick="clearAllData()" title="清空数据" style="color: #ff6b6b;">🗑️</button>
+            <div onclick="showSettings()" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer;">
+                <span style="font-size: 14px; color: var(--text);">⚙️ 设置</span>
+            </div>
         </div>
     </div>
     <div class="month-nav">
@@ -222,34 +434,19 @@
     </div>
     
     <div class="settings-page" id="settingsPage">
-        <div class="settings-header">
-            <button onclick="closeSettings()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
-            <h2>⚙️ 设置</h2>
-            <div></div>
+        <div class="settings-header" style="display: flex; align-items: center; justify-content: center; padding: 16px 20px; background: rgba(233, 69, 96, 0.1);">
+            <h2 style="margin: 0; font-size: 18px;">⚙️ 设置</h2>
         </div>
-        <div class="settings-content">
+        <div class="settings-content" style="padding-bottom: 80px;">
             <div class="settings-section">
                 <h3>🏋️ 岩馆品牌</h3>
                 <div id="gymCategories"></div>
-                <div class="add-item" style="margin-top: 12px;">
-                    <select id="gymCategorySetting" style="flex:1;padding:10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);">
-                        <option value="香蕉">香蕉</option>
-                        <option value="cube">cube</option>
-                        <option value="upper">upper</option>
-                        <option value="闪电">闪电</option>
-                        <option value="其他">其他</option>
-                    </select>
-                    <input type="text" id="newGymSetting" placeholder="输入岩馆名称" style="flex:2;">
-                    <button onclick="addSetting('gym')">添加</button>
-                </div>
+                <button onclick="openAddGymModal()" style="margin-top: 12px; width: 100%; padding: 12px; background: var(--bg-dark); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer;">+ 添加岩馆</button>
             </div>
             <div class="settings-section">
                 <h3>👥 可选搭子</h3>
                 <div class="settings-list" id="partnerSettingsList" style="margin-bottom: 12px;"></div>
-                <div class="add-item">
-                    <input type="text" id="newPartnerSetting" placeholder="输入搭子名称">
-                    <button onclick="addSetting('partner')">添加</button>
-                </div>
+                <button onclick="openAddPartnerModal()" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer;">+ 添加搭子</button>
             </div>
             <div class="settings-section">
                 <h3>🧗 抱石线路最高级别</h3>
@@ -258,20 +455,48 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 设置页底部悬浮按钮 -->
+        <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; display: flex; gap: 12px; z-index: 100;">
+            <button onclick="closeSettings()" style="flex: 1; padding: 14px; background: #0f0f23; border: 1px solid #666; border-radius: 10px; color: #fff; font-size: 16px; cursor: pointer;">取消</button>
+            <button onclick="saveSettings(); closeSettings();" style="flex: 1; padding: 14px; background: var(--primary-gradient); border: none; border-radius: 10px; color: #fff; font-size: 16px; cursor: pointer;">保存</button>
+        </div>
     </div>
     
     <div class="stats-page" id="statsPage">
-        <div class="stats-header" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(233, 69, 96, 0.1);">
-            <button onclick="closeStats()" style="background:var(--bg-card);border:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;">←</button>
-            <h2 style="text-align: center; margin: 0; flex: 1;">📊 统计面板</h2>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <input type="date" id="statsStartDate" style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 14px; color-scheme: dark;">
-                <span style="color: var(--text-secondary);">至</span>
-                <input type="date" id="statsEndDate" style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 14px; color-scheme: dark;">
-                <button onclick="updateStats()" style="background: var(--primary); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">查询</button>
+        <div class="stats-header" style="display: flex; flex-direction: column; align-items: stretch; padding: 12px 20px; background: rgba(233, 69, 96, 0.1); gap: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <button onclick="closeStats()" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer;">
+                    <span style="color: var(--text); font-size: 14px;">← 返回</span>
+                </button>
+                <h2 style="text-align: center; margin: 0; flex: 1; font-size: 18px;">📊 统计面板</h2>
+                <button onclick="toggleStatsFilter()" style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer;">
+                    <span style="color: var(--text); font-size: 14px;">📅 日期查询</span>
+                </button>
             </div>
         </div>
+        
+        <!-- 筛选弹窗 -->
+        <div id="statsFilterModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 320px; width: 100%;">
+                <div style="font-size: 16px; font-weight: bold; margin-bottom: 20px; text-align: center;">日期查询</div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">开始日期</label>
+                    <input type="date" id="statsStartDate" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; box-sizing: border-box; color-scheme: dark;">
+                </div>
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">结束日期</label>
+                    <input type="date" id="statsEndDate" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; box-sizing: border-box; color-scheme: dark;">
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="toggleStatsFilter()" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">取消</button>
+                    <button onclick="updateStats(); toggleStatsFilter();" style="flex: 1; padding: 12px; background: var(--primary-gradient); border: none; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">查询</button>
+                </div>
+            </div>
+        </div>
+        
         <div class="stats-content">
+            <div id="statsDateRange" style="text-align: center; padding: 8px 15px; color: var(--text-secondary); font-size: 14px;"></div>
             <!-- 总次数和频率 - 放在一个大卡片中，各自独立带边框 -->
             <div style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px;">
                 <div style="display: flex; gap: 16px;">
@@ -364,10 +589,28 @@
             }
         }
         
+        // 自定义确认弹窗
+        function showConfirm(title, message, onConfirm) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').style.display = 'flex';
+            
+            document.getElementById('confirmOk').onclick = function() {
+                document.getElementById('confirmModal').style.display = 'none';
+                onConfirm();
+            };
+            document.getElementById('confirmCancel').onclick = function() {
+                document.getElementById('confirmModal').style.display = 'none';
+            };
+        }
+        
         // 登出
         async function logout() {
-            await fetch('/api/logout', {method: 'POST'});
-            window.location.href = '/';
+            document.getElementById('userMenu').style.display = 'none';
+            showConfirm('退出登录', '确定要退出登录吗？', async function() {
+                await fetch('/api/logout', {method: 'POST'});
+                window.location.href = '/';
+            });
         }
         
         // 切换用户菜单显示
@@ -387,19 +630,21 @@
         
         // 清空所有数据
         async function clearAllData() {
-            if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
-            if (!confirm('再次确认：清空所有记录、岩馆和搭子？')) return;
-            
-            try {
-                await fetch('/api/records/clear', {method: 'POST'});
-                await fetch('/api/gyms/clear', {method: 'POST'});
-                await fetch('/api/partners/clear', {method: 'POST'});
-                
-                alert('数据已清空！');
-                window.location.reload();
-            } catch (e) {
-                alert('清空失败: ' + e.message);
-            }
+            document.getElementById('userMenu').style.display = 'none';
+            showConfirm('清空数据', '确定要清空所有数据吗？此操作不可恢复！', function() {
+                showConfirm('再次确认', '清空所有记录、岩馆和搭子？', async function() {
+                    try {
+                        await fetch('/api/records/clear', {method: 'POST'});
+                        await fetch('/api/gyms/clear', {method: 'POST'});
+                        await fetch('/api/partners/clear', {method: 'POST'});
+                        
+                        alert('数据已清空！');
+                        window.location.reload();
+                    } catch (e) {
+                        alert('清空失败: ' + e.message);
+                    }
+                });
+            });
         }
         
         // 注册 Chart.js 插件
@@ -420,7 +665,7 @@
             
             // 渲染页面
             currentDate = new Date();
-            document.getElementById('climbDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('climbDate').value = getBeijingDateStr();
             renderCalendar();
         }
         
@@ -461,7 +706,7 @@
         let currentDate = new Date();
         let selectedDate = null;
         
-        document.getElementById('climbDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('climbDate').value = getBeijingDateStr();
         renderCalendar();
         
         function saveMaxGrade(value) {
@@ -511,11 +756,20 @@
             let html = '';
             const categoryNames = { '香蕉': '🍌 香蕉', 'cube': '📦 cube', 'upper': '⬆️ upper', '闪电': '⚡ 闪电', '其他': '📍 其他' };
             for (const cat in settings.gyms) {
-                html += '<div class="gym-category"><h4>' + (categoryNames[cat] || cat) + '</h4>';
-                html += '<div class="settings-list">';
-                settings.gyms[cat].forEach(function(g, i) {
-                    html += '<div class="settings-list-item"><span>' + g + '</span><button onclick="removeGym(\'' + cat + '\',' + i + ')">✕</button></div>';
-                });
+                var isExpanded = false; // 默认收起
+                html += '<div class="gym-category">';
+                html += '<div onclick="toggleGymCategory(this)" style="cursor: pointer; padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">';
+                html += '<h4 style="margin: 0;">' + (categoryNames[cat] || cat) + '</h4>';
+                html += '<span style="color: var(--text-secondary);">' + (isExpanded ? '▼' : '▶') + '</span>';
+                html += '</div>';
+                html += '<div class="settings-list" style="display: ' + (isExpanded ? 'flex' : 'none') + ';">';
+                if (settings.gyms[cat].length === 0) {
+                    html += '<div style="color: var(--text-secondary); font-size: 12px; padding: 8px 0;">暂无岩馆</div>';
+                } else {
+                    settings.gyms[cat].forEach(function(g, i) {
+                        html += '<div class="settings-list-item"><span>' + g + '</span><button onclick="removeGym(\'' + cat + '\',' + i + ')">✕</button></div>';
+                    });
+                }
                 html += '</div></div>';
             }
             gymCategories.innerHTML = html;
@@ -525,6 +779,28 @@
             
             // 渲染最高级别
             document.getElementById('maxGrade').value = settings.maxGrade || 'V6';
+        }
+        
+        function toggleGymCategory(header) {
+            var list = header.nextElementSibling;
+            var arrow = header.querySelector('span');
+            if (list.style.display === 'none') {
+                list.style.display = 'flex';
+                arrow.textContent = '▼';
+            } else {
+                list.style.display = 'none';
+                arrow.textContent = '▶';
+            }
+        }
+        
+        function openAddGymModal() {
+            document.getElementById('newGymSetting').value = '';
+            document.getElementById('addGymModal').style.display = 'flex';
+        }
+        
+        function openAddPartnerModal() {
+            document.getElementById('newPartnerSetting').value = '';
+            document.getElementById('addPartnerModal').style.display = 'flex';
         }
         
         function removeGym(category, index) {
@@ -580,13 +856,22 @@
         }
         
         function showImportExport() {
+            document.getElementById('userMenu').style.display = 'none';
             document.getElementById('importExportModal').style.display = 'flex';
         }
         
         function showFeedback() {
+            document.getElementById('userMenu').style.display = 'none';
             document.getElementById('feedbackModal').style.display = 'flex';
             document.getElementById('feedbackText').value = '';
             document.getElementById('feedbackImages').value = '';
+            document.getElementById('feedbackImageCount').textContent = '';
+        }
+        
+        function handleFeedbackImageSelect() {
+            var fileInput = document.getElementById('feedbackImages');
+            var count = fileInput.files.length;
+            document.getElementById('feedbackImageCount').textContent = count > 0 ? '已选择 ' + count + ' 张图片' : '';
         }
         
         async function submitFeedback() {
@@ -691,7 +976,15 @@
             
             var firstDay = new Date(year, month, 1).getDay();
             var daysInMonth = new Date(year, month + 1, 0).getDate();
-            var today = new Date();
+            var beijingTodayStr = getBeijingDateStr();
+            
+            // 更新月份箭头按钮状态
+            var beijingNow = getBeijingDate();
+            var currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+            var beijingNextMonth = new Date(beijingNow.getFullYear(), beijingNow.getMonth() + 1, 1);
+            var nextBtnDisabled = currentMonth.getTime() >= beijingNextMonth.getTime();
+            document.querySelector('.month-nav button:last-child').style.opacity = nextBtnDisabled ? '0.3' : '1';
+            document.querySelector('.month-nav button:last-child').style.pointerEvents = nextBtnDisabled ? 'none' : 'auto';
             
             var html = '';
             for (var i = 0; i < firstDay; i++) {
@@ -701,8 +994,12 @@
             for (var day = 1; day <= daysInMonth; day++) {
                 var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
                 var dayRecords = records.filter(function(r) { return r.date === dateStr; });
-                var isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+                
+                // 使用本地日期（用户在中国，就是北京时间）
+                var localDate = new Date();
+                var isToday = localDate.getFullYear() === year && localDate.getMonth() === month && localDate.getDate() === day;
                 var hasRecord = dayRecords.length > 0;
+                var isFuture = dateStr > beijingTodayStr;
                 
                 var gymLabels = '';
                 if (hasRecord) {
@@ -711,14 +1008,36 @@
                     });
                 }
                 
-                html += '<div class="calendar-day ' + (isToday ? 'today' : '') + ' ' + (hasRecord ? 'has-record' : '') + '" onclick="showDetail(\'' + dateStr + '\')">' +
+                var dayClass = 'calendar-day' + (isToday ? ' today' : '') + (hasRecord ? ' has-record' : '') + (isFuture ? ' future-day' : '');
+                html += '<div class="' + dayClass + '" onclick="' + (isFuture ? '' : 'showDetail(\'' + dateStr + '\')') + '">' +
                     '<div class="day-number">' + day + '</div>' +
                     (hasRecord ? '<div class="day-labels">' + gymLabels + '</div>' : '') + '</div>';
             }
             document.getElementById('calendarGrid').innerHTML = html;
         }
         
+        // 获取北京时间（用户本地就是北京时间）
+        function getBeijingDate() {
+            return new Date();
+        }
+        
+        // 获取北京时间日期字符串 (YYYY-MM-DD)
+        function getBeijingDateStr() {
+            var d = new Date();
+            var year = d.getFullYear();
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            var day = String(d.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        }
+        
         function changeMonth(delta) {
+            var beijingNow = getBeijingDate();
+            var currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+            var beijingNextMonth = new Date(beijingNow.getFullYear(), beijingNow.getMonth() + 1, 1);
+            
+            if (delta > 0 && currentMonth.getTime() >= beijingNextMonth.getTime()) {
+                return; // 不能切换到未来月份
+            }
             currentDate.setMonth(currentDate.getMonth() + delta);
             renderCalendar();
         }
@@ -990,8 +1309,12 @@
             document.getElementById('statsPage').classList.add('active');
             var today = new Date();
             var thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-            document.getElementById('statsStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
-            document.getElementById('statsEndDate').value = today.toISOString().split('T')[0];
+            var startDate = thirtyDaysAgo.toISOString().split('T')[0];
+            var endDate = today.toISOString().split('T')[0];
+            document.getElementById('statsStartDate').value = startDate;
+            document.getElementById('statsEndDate').value = endDate;
+            // 显示查询的时间段
+            document.getElementById('statsDateRange').textContent = startDate + ' 至 ' + endDate;
             // 延迟一点等待页面渲染
             setTimeout(updateStats, 100);
         }
@@ -1000,9 +1323,20 @@
             document.getElementById('statsPage').classList.remove('active');
         }
         
+        function toggleStatsFilter() {
+            var modal = document.getElementById('statsFilterModal');
+            modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+        }
+        
         function updateStats() {
             var startDate = document.getElementById('statsStartDate').value;
             var endDate = document.getElementById('statsEndDate').value;
+            
+            // 显示查询的时间段
+            if (startDate && endDate) {
+                document.getElementById('statsDateRange').textContent = startDate + ' 至 ' + endDate;
+            }
+            
             var filtered = records.filter(function(r) { return r.date >= startDate && r.date <= endDate; });
             
             // 1. 总次数和频率 - 同一岩馆同一天只统计1次
@@ -1347,10 +1681,12 @@
                 <button class="modal-close" onclick="document.getElementById('feedbackModal').style.display='none'">×</button>
             </div>
             <div class="modal-body" style="padding: 20px;">
-                <textarea id="feedbackText" placeholder="请输入您的意见或建议..." style="width: 100%; height: 120px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a2e; color: #fff; font-size: 14px; resize: none;"></textarea>
+                <textarea id="feedbackText" placeholder="请输入您的意见或建议..." style="width: 100%; height: 120px; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; resize: none;"></textarea>
                 <div style="margin-top: 15px;">
-                    <label style="display: block; margin-bottom: 8px; color: #8892b0;">上传图片（可多选）：</label>
-                    <input type="file" id="feedbackImages" accept="image/*" multiple style="color: #8892b0;">
+                    <label style="display: block; margin-bottom: 8px; color: var(--text-secondary);">上传图片（可多选）：</label>
+                    <input type="file" id="feedbackImages" accept="image/*" multiple style="display: none;" onchange="handleFeedbackImageSelect()">
+                    <button type="button" onclick="document.getElementById('feedbackImages').click()" style="color: #4ecdc4; background: transparent; border: 1px solid #4ecdc4; border-radius: 6px; padding: 8px 16px; cursor: pointer; width: 100%;">选择图片</button>
+                    <div id="feedbackImageCount" style="margin-top: 8px; font-size: 12px; color: var(--text-secondary); text-align: center;"></div>
                 </div>
                 <button class="btn" onclick="submitFeedback()" style="margin-top: 20px; width: 100%;">提交反馈</button>
             </div>
@@ -1369,6 +1705,58 @@
                     <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 导入数据</button>
                 </div>
                 <input type="file" id="importFile" style="display:none" accept=".json" onchange="handleImport(event)">
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加岩馆弹窗 -->
+    <div id="addGymModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 320px; width: 100%;">
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 20px; text-align: center;">添加岩馆</div>
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">品牌</label>
+                <select id="gymCategorySetting" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+                    <option value="香蕉">🍌 香蕉</option>
+                    <option value="cube">📦 cube</option>
+                    <option value="upper">⬆️ upper</option>
+                    <option value="闪电">⚡ 闪电</option>
+                    <option value="其他">📍 其他</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">岩馆名称</label>
+                <input type="text" id="newGymSetting" placeholder="输入岩馆名称" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); box-sizing: border-box;">
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="document.getElementById('addGymModal').style.display='none'" style="flex: 1; padding: 12px; background: #0f0f23; border: 1px solid #666; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">取消</button>
+                <button onclick="addSetting('gym'); document.getElementById('addGymModal').style.display='none';" style="flex: 1; padding: 12px; background: var(--primary-gradient); border: none; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">添加</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加搭子弹窗 -->
+    <div id="addPartnerModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 320px; width: 100%;">
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 20px; text-align: center;">添加搭子</div>
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">搭子名称</label>
+                <input type="text" id="newPartnerSetting" placeholder="输入搭子名称" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); box-sizing: border-box;">
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="document.getElementById('addPartnerModal').style.display='none'" style="flex: 1; padding: 12px; background: #0f0f23; border: 1px solid #666; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">取消</button>
+                <button onclick="addSetting('partner'); document.getElementById('addPartnerModal').style.display='none';" style="flex: 1; padding: 12px; background: var(--primary-gradient); border: none; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">添加</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 确认弹窗 -->
+    <div id="confirmModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #1a1a2e; border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 300px; width: 100%; text-align: center;">
+            <div id="confirmTitle" style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: var(--text);">确认</div>
+            <div id="confirmMessage" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">确定要执行此操作吗？</div>
+            <div style="display: flex; gap: 10px;">
+                <button id="confirmCancel" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">取消</button>
+                <button id="confirmOk" style="flex: 1; padding: 12px; background: var(--primary-gradient); border: none; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">确定</button>
             </div>
         </div>
     </div>

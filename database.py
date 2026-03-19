@@ -18,6 +18,9 @@ def init_database():
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
+    # 设置时区为东8区（北京时区）
+    cursor.execute("PRAGMA timezone = '+08:00'")
+    
     # 用户表
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
