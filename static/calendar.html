@@ -48,10 +48,21 @@
             gap: 10px;
         }
         .modal-footer .btn { margin-top: 0; flex: 1; }
+        /* 次要按钮（取消按钮）- 用灰色系，明显弱于粉色保存按钮 */
         .modal-footer .btn-cancel { 
-            background: rgba(255,255,255,0.1) !important; 
-            border: 1px solid var(--border) !important; 
-            color: #fff !important; 
+            background: #3a3a3a !important; 
+            border: 1px solid #555 !important; 
+            color: #aaa !important; 
+            box-shadow: none !important;
+            flex: 1 !important;
+            border-radius: 8px !important;
+        }
+        .modal-footer .btn-cancel:hover {
+            background: #4a4a4a !important;
+            color: #ccc !important;
+        }
+        .modal-footer .btn-cancel:active {
+            transform: none !important;
         }
         
         /* 表单 */
@@ -234,9 +245,11 @@
         .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
         .modal-footer { padding: 15px 24px; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 10px; }
         .modal-footer .btn { margin-top: 0; flex: 1; }
-        .btn-cancel { background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: #fff; }
+        .btn-cancel { background: #3a3a3a; border: 1px solid #555; color: #aaa; box-shadow: none; flex: 1; border-radius: 8px; }
+        .btn-cancel:hover { background: #4a4a4a; color: #ccc; }
         .modal-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; z-index: 10; }
         .modal h2 { margin-bottom: 20px; font-size: 18px; }
+        
         /* ========== Ant Design 风格表单优化 ========== */
         .form-group { margin-bottom: 20px; }
         .form-group label { 
@@ -367,26 +380,34 @@
             background: rgba(255, 255, 255, 0.04); 
             border-radius: 12px; 
             padding: 16px; 
-            margin-bottom: 0;
             display: flex; 
             flex-direction: column; 
             border: 1px solid rgba(255, 255, 255, 0.08);
             width: 100%; 
             box-sizing: border-box;
             transition: all 0.3s;
+            /* 统一间距：每个区块之间12px */
+            gap: 12px;
+            /* 关键：让每个区块高度独立，不因为邻居变高而跟着变 */
+            align-items: flex-start;
         }
         .record-item:hover {
             background: rgba(255, 255, 255, 0.06);
             border-color: rgba(233, 69, 96, 0.3);
         }
-        .record-item:last-child { margin-bottom: 0; }
         .record-item > div { flex: none; }
         
-        /* 标题 */
+        /* ========== 记录块结构 ========== */
+        /* 第一部分：标题行 */
+        .record-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
         .record-item .gym-name { 
             font-size: 15px; 
             font-weight: 600; 
-            margin-bottom: 10px; 
             color: var(--primary);
             display: flex;
             align-items: center;
@@ -400,63 +421,87 @@
             background: var(--primary-gradient);
             border-radius: 2px;
         }
+        /* 标题行操作按钮 */
+        .record-header-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+        }
         
-        /* 信息网格 */
-        .record-item .info { 
+        /* 第二部分：信息网格（2x2） */
+        .record-info { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
             gap: 12px; 
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 12px;
+            width: 100%;
+            align-items: start;
+        }
+        .record-info-cell { 
             font-size: 13px; 
             color: var(--text-secondary); 
+            line-height: 1.5;
+            word-break: break-word;
         }
-        .record-item .info span { color: var(--text); font-weight: 500; }
+        .record-info-cell > span { color: var(--text); font-weight: 500; }
         
-        /* 搭子 */
-        .record-item .partner { 
-            margin-top: 10px; 
-            font-size: 13px; 
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-        /* 去掉搭子前面的icon */
-        .record-item .partner::before {
-            display: none;
-        }
-        .record-item .partner span { 
-            color: #4ecdc4; 
-            background: rgba(78, 205, 196, 0.15);
-            padding: 2px 8px;
-            border-radius: 4px;
+        /* 路线标签（完攀级别） */
+        .route-tag { 
+            background: rgba(233, 69, 96, 0.15); 
+            color: var(--primary); 
+            padding: 2px 8px; 
+            border-radius: 4px; 
             font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+            margin: 2px;
+            line-height: 22px;
+            box-sizing: border-box;
+            height: 28px;
         }
         
-        /* 备注 */
-        .record-item .notes-row { 
-            display: flex; 
-            flex-direction: row; 
-            gap: 12px; 
-            margin-top: 10px; 
-            align-items: flex-start; 
+        /* 搭子标签 */
+        .partner-tag { 
+            color: #4ecdc4 !important;
+            background: rgba(78, 205, 196, 0.15) !important;
+            padding: 2px 8px !important;
+            border-radius: 4px !important;
+            font-size: 12px !important;
+            display: inline-block !important;
+            margin: 2px !important;
+            vertical-align: middle !important;
+            line-height: 22px !important;
+            box-sizing: border-box !important;
+            height: 28px !important;
         }
-        .record-item .notes { 
+        .partner-label {
+            color: var(--text-secondary);
+        }
+        
+        /* 第三部分：备注 */
+        .record-notes {
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 12px;
+            width: 100%;
+        }
+        .record-notes-text { 
             font-size: 13px; 
             color: var(--text-secondary); 
-            padding-top: 10px; 
-            border-top: 1px solid rgba(255, 255, 255, 0.08); 
-            flex: 1;
             line-height: 1.6;
         }
         
-        /* 路线标签 */
-        .record-item .routes { 
-            margin-top: 10px; 
-            display: flex; 
-            flex-wrap: wrap; 
-            gap: 8px; 
+        /* 编辑/删除按钮 */
+        .edit-btn, .delete-btn { 
+            background: transparent; 
+            border: 1px solid #4ecdc4; 
+            color: #4ecdc4; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-size: 12px; 
+            cursor: pointer; 
         }
+        .delete-btn { border-color: #ff4757; color: #ff4757; }
         .route-tag { 
             background: rgba(233, 69, 96, 0.15); 
             color: var(--primary); 
@@ -694,11 +739,11 @@
                 </div>
                 <div class="form-group">
                     <label>日期</label>
-                    <input type="date" id="climbDate" required>
+                    <input type="date" id="climbDate" required style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;">
                 </div>
                 <div class="form-group">
                     <label>时长 (小时)</label>
-                    <input type="number" id="duration" step="0.5" min="0.5" placeholder="例如：2.5">
+                    <input type="number" id="duration" step="0.5" min="0.5" placeholder="例如：2.5" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;">
                 </div>
                 <div class="form-group">
                     <label>类型</label>
@@ -722,11 +767,11 @@
                 </div>
                 <div class="form-group">
                     <label>备注</label>
-                    <textarea id="notes" placeholder="今天的表现、感受等"></textarea>
+                    <textarea id="notes" placeholder="今天的表现、感受等" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;"></textarea>
                 </div>
             </form>
             <div class="modal-footer">
-                <button type="button" class="btn btn-cancel" onclick="closeModal('addModal')">取消</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('addModal')">取消</button>
                 <button type="submit" class="btn" form="addForm" id="saveRecordBtn">保存记录</button>
             </div>
         </div>
@@ -735,7 +780,7 @@
     <div class="settings-page" id="settingsPage">
         <div class="settings-header" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(233, 69, 96, 0.1);">
             <button onclick="closeSettings()" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);padding:8px 12px;border-radius:20px;border:1px solid var(--border);cursor:pointer;">
-                    <span style="color:var(--text);font-size:14px;">← 返回</span></button>
+                    <img src="back-icon.png" style="width:16px;height:16px;"><span style="color:var(--text);font-size:14px;">返回</span></button>
             <h2 style="margin: 0; font-size: 18px;">⚙️ 设置</h2>
             <div style="width:88px;"></div>
         </div>
@@ -764,7 +809,7 @@
         <div class="stats-header" style="display: flex; flex-direction: column; align-items: stretch; padding: 12px 20px; background: rgba(233, 69, 96, 0.1); gap: 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
                 <button onclick="closeStats()" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer;">
-                    <span style="color: var(--text); font-size: 14px;">← 返回</span>
+                    <img src="back-icon.png" style="width:16px;height:16px;"><span style="color: var(--text); font-size: 14px;">返回</span>
                 </button>
                 <h2 style="text-align: center; margin: 0; flex: 1; font-size: 18px;">📊 统计面板</h2>
                 <button onclick="toggleStatsFilter()" style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer;">
@@ -1451,26 +1496,48 @@
                 document.getElementById('detailRecords').innerHTML = '<p style="color: #8892b0; text-align: center; padding: 40px;">暂无记录</p>';
             } else {
                 var recordsHtml = dayRecords.map(function(r, i) {
-                    var html = '<div class="record-item"><div class="gym-name">' + r.gym + '</div><div class="info"><div>时长: <span>' + (r.duration ? r.duration + 'h' : '不记着') + '</span></div><div>类型: <span>' + (r.type || '-') + '</span></div>';
-                    // routes 字段是 "V0-2, V1-3" 格式
+                    // 第一部分：标题 + 操作按钮
+                    var html = '<div class="record-item">';
+                    html += '<div class="record-header">';
+                    html += '<div class="gym-name">' + r.gym + '</div>';
+                    html += '<div class="record-header-actions">';
+                    html += '<button class="edit-btn" onclick="editRecord(' + r.id + ')">✏️ 编辑</button>';
+                    html += '<button class="delete-btn" onclick="deleteRecord(' + r.id + ')">🗑️ 删除</button>';
+                    html += '</div></div>';
+                    
+                    // 第二部分：2x2信息网格
+                    html += '<div class="record-info">';
+                    // 时长
+                    html += '<div class="record-info-cell">时长: <span>' + (r.duration ? r.duration + 'h' : '不记着') + '</span></div>';
+                    // 类型
+                    html += '<div class="record-info-cell">类型: <span>' + (r.type || '-') + '</span></div>';
+                    // 完攀级别及数量
                     var routesStr = r.routes || r.grade || '';
                     if (routesStr) {
                         var routes = routesStr.split(',').map(function(rt) { return rt.trim(); }).filter(function(rt) { return rt; });
-                        html += '<div class="routes">' + routes.map(function(rt) { return '<span class="route-tag">' + rt + '</span>'; }).join('') + '</div>';
+                        var routesHtml = routes.map(function(rt) { return '<span class="route-tag">' + rt + '</span>'; }).join('');
+                        html += '<div class="record-info-cell">' + routesHtml + '</div>';
+                    } else {
+                        html += '<div class="record-info-cell"><span>-</span></div>';
                     }
+                    // 搭子
                     var partnerDisplay = r.partners || r.partner || '自己';
                     if (typeof partnerDisplay === 'string') {
                         partnerDisplay = partnerDisplay.split(',').map(function(p) { return p.trim(); });
                     }
-                    if (Array.isArray(partnerDisplay)) partnerDisplay = partnerDisplay.join(', ');
-                    html += '<div class="partner">搭子: <span>' + partnerDisplay + '</span></div>';
-                    html += '</div>';
-                    html += '<div class="notes-row">';
-                    if (r.notes) {
-                        html += '<div class="notes">' + r.notes + '</div>';
+                    if (Array.isArray(partnerDisplay)) {
+                        partnerDisplay = partnerDisplay.map(function(p) { return '<span class="partner-tag">' + p + '</span>'; }).join('');
+                    } else {
+                        partnerDisplay = '<span class="partner-tag">' + partnerDisplay + '</span>';
                     }
-                    html += '<div class="actions"><button class="edit-btn" onclick="editRecord(' + r.id + ')">✏️ 编辑</button><button class="delete-btn" onclick="deleteRecord(' + r.id + ')">🗑️ 删除</button></div>';
-                    html += '</div></div>';
+                    html += '<div class="record-info-cell">' + partnerDisplay + '</div>';
+                    html += '</div>';
+                    
+                    // 第三部分：备注
+                    if (r.notes) {
+                        html += '<div class="record-notes"><div class="record-notes-text">' + r.notes + '</div></div>';
+                    }
+                    html += '</div>';
                     return html;
                 }).join('');
                 document.getElementById('detailRecords').innerHTML = '<div class="records-container">' + recordsHtml + '</div>';
