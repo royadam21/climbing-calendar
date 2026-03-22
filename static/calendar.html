@@ -1868,13 +1868,13 @@
                 .filter(function(item) { return item.count > 0; });
             
             // 取Top5（如果出现并列，则并列的全部展示）
-            var top5Count = gymArray.length > 0 ? gymArray[4].count : 0; // 第5名的数量
-            var gymTop5 = gymArray.filter(function(g) { return g.count >= top5Count || gymArray.indexOf(g) < 5; });
-            if (gymArray.length > 5 && top5Count > 0) {
-                // 有并列情况，取所有并列的
-                gymTop5 = gymArray.filter(function(g) { return g.count >= top5Count; });
+            var top5Count = gymArray.length >= 5 ? gymArray[4].count : 0; // 第5名的数量
+            if (top5Count === 0) {
+                // 不足5个时，直接取全部
+                var gymTop5 = gymArray;
             } else {
-                gymTop5 = gymArray.slice(0, 5);
+                // 有5个以上时，取前5和所有并列的
+                gymTop5 = gymArray.filter(function(g) { return g.count >= top5Count; });
             }
             
             // 渲染岩馆柱状图（Top5）
