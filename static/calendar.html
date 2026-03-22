@@ -421,9 +421,9 @@
             flex-wrap: wrap;
             gap: 6px;
         }
+        /* 去掉搭子前面的icon */
         .record-item .partner::before {
-            content: '👥';
-            margin-right: 4px;
+            display: none;
         }
         .record-item .partner span { 
             color: #4ecdc4; 
@@ -1651,16 +1651,16 @@
         };
         
         async function deleteRecord(id) {
-            if (!confirm('确定要删除这条记录吗？')) return;
-            
-            try {
-                await fetch('/api/records/' + id, {method: 'DELETE'});
-                await loadRecords();
-                renderCalendar();
-                showDetail(selectedDate);
-            } catch (err) {
-                alert('删除失败');
-            }
+            showConfirm('删除记录', '确定要删除这条记录吗？', async function() {
+                try {
+                    await fetch('/api/records/' + id, {method: 'DELETE'});
+                    await loadRecords();
+                    renderCalendar();
+                    showDetail(selectedDate);
+                } catch (err) {
+                    showToast('删除失败');
+                }
+            });
         }
         
         function saveData() {
