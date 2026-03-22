@@ -23,14 +23,14 @@ def hash_password(password):
 
 # ==================== 用户模型 ====================
 
-def create_user(username, password):
+def create_user(username, password, is_admin=0):
     """创建新用户"""
     conn = get_db()
     cursor = conn.cursor()
     try:
         cursor.execute(
-            'INSERT INTO users (username, password) VALUES (?, ?)',
-            (username, hash_password(password))
+            'INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)',
+            (username, hash_password(password), is_admin)
         )
         conn.commit()
         return cursor.lastrowid
@@ -44,7 +44,7 @@ def verify_user(username, password):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        'SELECT id, username FROM users WHERE username = ? AND password = ?',
+        'SELECT id, username, is_admin FROM users WHERE username = ? AND password = ?',
         (username, hash_password(password))
     )
     user = cursor.fetchone()
@@ -55,9 +55,10 @@ def get_user_by_id(user_id):
     """根据ID获取用户"""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('SELECT id, username, created_at FROM users WHERE id = ?', (user_id,))
+    cursor.execute('SELECT id, username, is_admin, created_at FROM users WHERE id = ?', (user_id,))
     user = cursor.fetchone()
     conn.close()
+    return dict(user) if user else None
     return dict(user) if user else None
 
 # ==================== 爬墙记录模型 ====================
@@ -138,38 +139,49 @@ def clear_all_records(user_id):
 # ==================== 岩馆模型 ====================
 
 def add_gym(user_id, gym_name, wall_type=None):
-    """添加岩馆"""
+    """添加岩馆（全局，无用户区分）"""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        'INSERT INTO gyms (user_id, gym_name, wall_type) VALUES (?, ?, ?)',
-        (user_id, gym_name, wall_type)
+        'INSERT INTO gyms (gym_name, wall_type) VALUES (?, ?)',
+        (gym_name, wall_type)
     )
     conn.commit()
     conn.close()
 
 def get_gyms(user_id):
-    """获取用户岩馆列表"""
+    """获取岩馆列表（全局，所有用户共享）"""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM gyms WHERE user_id = ?', (user_id,))
+    cursor.execute('SELECT id, gym_name, wall_type FROM gyms ORDER BY id')
     gyms = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return gyms
 
-def delete_gym(gym_id, user_id):
-    """删除岩馆"""
+def delete_gym(gym_id):
+    """删除岩馆（全局）"""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM gyms WHERE id = ? AND user_id = ?', (gym_id, user_id))
+    cursor.execute('DELETE FROM gyms WHERE id = ?', (gym_id,))
     conn.commit()
     conn.close()
 
-def clear_all_gyms(user_id):
-    """清空用户所有岩馆"""
+def delete_gym_by_name(gym_name, wall_type=None):
+    """按名称删除岩馆（全局）"""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM gyms WHERE user_id = ?', (user_id,))
+    if wall_type:
+        cursor.execute('DELETE FROM gyms WHERE gym_name = ? AND wall_type = ?', (gym_name, wall_type))
+    else:
+        cursor.execute('DELETE FROM gyms WHERE gym_name = ?', (gym_name,))
+    conn.commit()
+    conn.close()
+
+def clear_all_gyms():
+    """清空所有岩馆（全局）"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM gyms')
     conn.commit()
     conn.close()
 
@@ -211,6 +223,39 @@ def delete_partner(partner_id, user_id):
     conn.commit()
     conn.close()
 
+def delete_partner_by_name(name, user_id):
+    """按名称删除搭子"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM partners WHERE name = ? AND user_id = ?', (name, user_id))
+    conn.commit()
+    conn.close()
+
+# ==================== 用户设置 ====================
+
+def get_max_grade(user_id):
+    """获取用户最高级别"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT max_grade FROM user_settings WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return dict(row)['max_grade'] if isinstance(row, sqlite3.Row) else row[0]
+        return 'V6'
+    except Exception:
+        conn.close()
+        return 'V6'
+
+def save_max_grade(user_id, grade):
+    """保存用户最高级别"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR REPLACE INTO user_settings (user_id, max_grade) VALUES (?, ?)', (user_id, grade))
+    conn.commit()
+    conn.close()
+
 # ==================== 数据导入导出 ====================
 
 def export_user_data(user_id):
@@ -222,10 +267,17 @@ def export_user_data(user_id):
         'exported_at': datetime.now().isoformat()
     }
 
-def import_user_data(user_id, data):
-    """导入用户数据 - 使用旧版字段名"""
+def import_user_data(user_id, data, is_admin=0):
+    """导入用户数据 - 全删全插"""
     conn = get_db()
     cursor = conn.cursor()
+    
+    # 先清空现有数据
+    cursor.execute('DELETE FROM records WHERE user_id = ?', (user_id,))
+    # 岩馆是全局的，只有管理员导入时才清空岩馆
+    if is_admin:
+        cursor.execute('DELETE FROM gyms')
+    cursor.execute('DELETE FROM partners WHERE user_id = ?', (user_id,))
     
     # 导入记录
     if 'records' in data:
@@ -249,21 +301,21 @@ def import_user_data(user_id, data):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (user_id, record['date'], record['gym'], str(routes) if routes else None, str(type_val) if type_val else None, duration, str(partners) if partners else None, str(notes) if notes else None))
     
-    # 导入岩馆 - 支持新旧格式
+    # 导入岩馆 - 支持新旧格式（岩馆是全局的，无user_id）
     if 'settings' in data and 'gyms' in data['settings']:
         # 旧格式: settings.gyms 是 {category: [gym names]}
         for category, gym_list in data['settings']['gyms'].items():
             for gym_name in gym_list:
                 cursor.execute(
-                    'INSERT INTO gyms (user_id, gym_name, wall_type) VALUES (?, ?, ?)',
-                    (user_id, gym_name, category)
+                    'INSERT INTO gyms (gym_name, wall_type) VALUES (?, ?)',
+                    (gym_name, category)
                 )
     elif 'gyms' in data:
-        # 新格式: gyms 是 [{gym_name, wall_type}]
+        # 新格式: gyms 是 [{gym_name, wall_type}]，岩馆是全局的
         for gym in data['gyms']:
             cursor.execute(
-                'INSERT INTO gyms (user_id, gym_name, wall_type) VALUES (?, ?, ?)',
-                (user_id, gym.get('gym_name'), gym.get('wall_type'))
+                'INSERT INTO gyms (gym_name, wall_type) VALUES (?, ?)',
+                (gym.get('gym_name'), gym.get('wall_type'))
             )
     
     # 导入搭子 - 支持新旧格式

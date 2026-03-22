@@ -10,9 +10,10 @@ import json
 from models import (
     create_user, verify_user, get_user_by_id,
     add_record, get_records, update_record, delete_record, clear_all_records,
-    add_gym, get_gyms, delete_gym, clear_all_gyms,
-    add_partner, get_partners, delete_partner, clear_all_partners,
-    export_user_data, import_user_data
+    add_gym, get_gyms, delete_gym, delete_gym_by_name, clear_all_gyms,
+    add_partner, get_partners, delete_partner, delete_partner_by_name,
+    export_user_data, import_user_data,
+    get_max_grade, save_max_grade
 )
 
 app = Flask(__name__)
@@ -69,7 +70,8 @@ def login():
     if user:
         session['user_id'] = user['id']
         session['username'] = user['username']
-        return jsonify({'success': True, 'username': user['username']})
+        session['is_admin'] = user.get('is_admin', 0)
+        return jsonify({'success': True, 'username': user['username'], 'is_admin': user.get('is_admin', 0)})
     else:
         return jsonify({'error': '用户名或密码错误'}), 401
 
@@ -85,7 +87,7 @@ def check_login():
     user_id = get_current_user_id()
     if user_id:
         user = get_user_by_id(user_id)
-        return jsonify({'logged_in': True, 'username': user['username']})
+        return jsonify({'logged_in': True, 'username': user['username'], 'is_admin': user.get('is_admin', 0)})
     return jsonify({'logged_in': False})
 
 # ==================== 爬墙记录接口 ====================
@@ -162,34 +164,50 @@ def clear_records_api():
 @app.route('/api/gyms', methods=['GET'])
 @require_login
 def get_gyms_api():
-    """获取岩馆列表"""
-    user_id = get_current_user_id()
-    gyms = get_gyms(user_id)
+    """获取岩馆列表（全局共享）"""
+    gyms = get_gyms(None)
     return jsonify(gyms)
 
 @app.route('/api/gyms', methods=['POST'])
 @require_login
 def add_gym_api():
-    """添加岩馆"""
-    user_id = get_current_user_id()
+    """添加岩馆 - 仅管理员"""
+    if not session.get('is_admin'):
+        return jsonify({'error': '无权限'}), 403
     data = request.json
-    add_gym(user_id, data.get('gym_name'), data.get('wall_type'))
+    add_gym(None, data.get('gym_name'), data.get('wall_type'))
     return jsonify({'success': True})
 
 @app.route('/api/gyms/clear', methods=['POST'])
 @require_login
 def clear_gyms_api():
-    """清空所有岩馆"""
-    user_id = get_current_user_id()
-    clear_all_gyms(user_id)
+    """清空所有岩馆 - 仅管理员"""
+    if not session.get('is_admin'):
+        return jsonify({'error': '无权限'}), 403
+    clear_all_gyms()
     return jsonify({'success': True})
 
 @app.route('/api/gyms/<int:gym_id>', methods=['DELETE'])
 @require_login
 def delete_gym_api(gym_id):
-    """删除岩馆"""
-    user_id = get_current_user_id()
-    delete_gym(gym_id, user_id)
+    """删除岩馆 - 仅管理员"""
+    if not session.get('is_admin'):
+        return jsonify({'error': '无权限'}), 403
+    delete_gym(gym_id)
+    return jsonify({'success': True})
+
+@app.route('/api/gyms/delete', methods=['POST'])
+@require_login
+def delete_gym_by_name_api():
+    """按名称删除岩馆 - 仅管理员"""
+    if not session.get('is_admin'):
+        return jsonify({'error': '无权限'}), 403
+    data = request.json or {}
+    name = data.get('name')
+    wall_type = data.get('wall_type')
+    if not name:
+        return jsonify({'error': '缺少参数'}), 400
+    delete_gym_by_name(name, wall_type)
     return jsonify({'success': True})
 
 # ==================== 搭子配置接口 ====================
@@ -219,6 +237,18 @@ def delete_partner_api(partner_id):
     delete_partner(partner_id, user_id)
     return jsonify({'success': True})
 
+@app.route('/api/partners/delete', methods=['POST'])
+@require_login
+def delete_partner_by_name_api():
+    """按名称删除搭子"""
+    user_id = get_current_user_id()
+    data = request.json or {}
+    name = data.get('name')
+    if not name:
+        return jsonify({'error': '缺少参数'}), 400
+    delete_partner_by_name(name, user_id)
+    return jsonify({'success': True})
+
 @app.route('/api/partners/clear', methods=['POST'])
 @require_login
 def clear_partners_api():
@@ -235,6 +265,9 @@ def export_data_api():
     """导出用户数据"""
     user_id = get_current_user_id()
     data = export_user_data(user_id)
+    # 非管理员不导出岩馆
+    if not session.get('is_admin'):
+        data.pop('gyms', None)
     return jsonify(data)
 
 @app.route('/api/import', methods=['POST'])
@@ -242,14 +275,33 @@ def export_data_api():
 def import_data_api():
     """导入用户数据"""
     user_id = get_current_user_id()
+    is_admin = session.get('is_admin', 0)
     data = request.json
     try:
-        import_user_data(user_id, data)
+        import_user_data(user_id, data, is_admin)
         return jsonify({'success': True})
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/settings/max_grade', methods=['POST'])
+@require_login
+def save_max_grade_api():
+    """保存最高级别"""
+    user_id = get_current_user_id()
+    data = request.json
+    grade = data.get('grade', '')
+    save_max_grade(user_id, grade)
+    return jsonify({'success': True})
+
+@app.route('/api/settings/max_grade', methods=['GET'])
+@require_login
+def get_max_grade_api():
+    """获取最高级别"""
+    user_id = get_current_user_id()
+    grade = get_max_grade(user_id)
+    return jsonify({'grade': grade})
 
 # ==================== 前端页面 ====================
 
@@ -331,4 +383,4 @@ def feedback_api():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)

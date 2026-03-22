@@ -237,16 +237,65 @@
         .btn-cancel { background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: #fff; }
         .modal-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; z-index: 10; }
         .modal h2 { margin-bottom: 20px; font-size: 18px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; box-sizing: border-box; }
-        .form-group select option { background: #1a1a2e; color: var(--text); }
+        /* ========== Ant Design 风格表单优化 ========== */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            color: var(--text-secondary); 
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        .form-group label::after {
+            content: ':';
+            margin-left: 2px;
+        }
+        /* 必填项 */
+        .form-group label.required::before {
+            content: '*';
+            color: #ff4d4f;
+            margin-right: 4px;
+        }
+        .form-group input, .form-group select, .form-group textarea { 
+            width: 100%; 
+            padding: 12px 14px; 
+            background: rgba(255, 255, 255, 0.06); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            border-radius: 8px; 
+            color: var(--text); 
+            font-size: 14px;
+            line-height: 1.5;
+            box-sizing: border-box;
+            transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        .form-group input:hover, .form-group select:hover, .form-group textarea:hover {
+            border-color: rgba(233, 69, 96, 0.5);
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.15);
+        }
+        .form-group input::placeholder, .form-group textarea::placeholder {
+            color: rgba(136, 146, 176, 0.5);
+        }
+        .form-group select option { 
+            background: #1a1a2e; 
+            color: var(--text); 
+            padding: 12px;
+        }
         
-        /* 修复下拉列表宽度超出问题 */
+        /* 下拉框样式优化 */
         .form-group select {
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238892b0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
+            cursor: pointer;
         }
         
         /* 移动端下拉选项优化 */
@@ -256,28 +305,167 @@
                 max-width: 100% !important;
                 box-sizing: border-box !important;
                 min-width: 0 !important;
+                font-size: 16px; /* 防止iOS缩放 */
+                padding: 14px 12px;
             }
             .form-group select option {
                 max-width: 100% !important;
                 width: max-content !important;
-                padding: 8px;
+                padding: 12px;
+                font-size: 15px;
             }
         }
-        .btn { width: 100%; padding: 14px; background: var(--primary-gradient); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-secondary { background: var(--bg-card); border: 1px solid var(--border); }
-        .record-item { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 8px; display: flex; flex-direction: column; border: 1px solid var(--border); width: 100%; box-sizing: border-box; }
+        /* ========== Ant Design 风格按钮优化 ========== */
+        .btn { 
+            width: 100%; 
+            padding: 12px 16px; 
+            background: var(--primary-gradient); 
+            border: none; 
+            border-radius: 8px; 
+            color: white; 
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer; 
+            margin-top: 10px;
+            transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn-secondary { 
+            background: rgba(255, 255, 255, 0.06); 
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(233, 69, 96, 0.5);
+        }
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        .btn-lg {
+            padding: 14px 20px;
+            font-size: 16px;
+        }
+        /* ========== Ant Design 风格 Bullet 列表优化 ========== */
+        .records-container { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+        }
+        .record-item { 
+            background: rgba(255, 255, 255, 0.04); 
+            border-radius: 12px; 
+            padding: 16px; 
+            margin-bottom: 0;
+            display: flex; 
+            flex-direction: column; 
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            width: 100%; 
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+        .record-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(233, 69, 96, 0.3);
+        }
         .record-item:last-child { margin-bottom: 0; }
-        .records-container { display: flex; flex-direction: column; gap: 8px; }
         .record-item > div { flex: none; }
-        .record-item .gym-name { font-size: 16px; font-weight: bold; margin-bottom: 8px; color: var(--primary); }
-        .record-item .info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; color: var(--text-secondary); }
-        .record-item .info span { color: var(--text); }
-        .record-item .partner { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
-        .record-item .partner span { color: #4ecdc4; }
-        .record-item .notes-row { display: flex; flex-direction: row; gap: 12px; margin-top: 8px; align-items: flex-start; }
-        .record-item .notes { font-size: 13px; color: var(--text-secondary); padding-top: 8px; border-top: 1px solid var(--border); flex: 1; }
-        .record-item .routes { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
-        .route-tag { background: rgba(233, 69, 96, 0.2); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+        
+        /* 标题 */
+        .record-item .gym-name { 
+            font-size: 15px; 
+            font-weight: 600; 
+            margin-bottom: 10px; 
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .record-item .gym-name::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: var(--primary-gradient);
+            border-radius: 2px;
+        }
+        
+        /* 信息网格 */
+        .record-item .info { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 12px; 
+            font-size: 13px; 
+            color: var(--text-secondary); 
+        }
+        .record-item .info span { color: var(--text); font-weight: 500; }
+        
+        /* 搭子 */
+        .record-item .partner { 
+            margin-top: 10px; 
+            font-size: 13px; 
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .record-item .partner::before {
+            content: '👥';
+            margin-right: 4px;
+        }
+        .record-item .partner span { 
+            color: #4ecdc4; 
+            background: rgba(78, 205, 196, 0.15);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* 备注 */
+        .record-item .notes-row { 
+            display: flex; 
+            flex-direction: row; 
+            gap: 12px; 
+            margin-top: 10px; 
+            align-items: flex-start; 
+        }
+        .record-item .notes { 
+            font-size: 13px; 
+            color: var(--text-secondary); 
+            padding-top: 10px; 
+            border-top: 1px solid rgba(255, 255, 255, 0.08); 
+            flex: 1;
+            line-height: 1.6;
+        }
+        
+        /* 路线标签 */
+        .record-item .routes { 
+            margin-top: 10px; 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 8px; 
+        }
+        .route-tag { 
+            background: rgba(233, 69, 96, 0.15); 
+            color: var(--primary); 
+            padding: 4px 12px; 
+            border-radius: 6px; 
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid rgba(233, 69, 96, 0.2);
+        }
         .record-item .actions { display: flex; gap: 8px; white-space: nowrap; }
         .edit-btn { background: transparent; border: 1px solid #4ecdc4; color: #4ecdc4; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-right: 10px; }
         .delete-btn { background: transparent; border: 1px solid #ff4757; color: #ff4757; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
@@ -293,19 +481,130 @@
         .gym-category { margin-bottom: 16px; }
         .gym-category h4 { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
         .settings-section h3, .stats-section h3 { font-size: 16px; margin-bottom: 16px; color: var(--primary); }
-        .settings-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .settings-list-item { display: flex; align-items: center; padding: 8px 12px; background: var(--bg-dark); border-radius: 20px; gap: 8px; }
-        .settings-list-item span { font-size: 14px; }
-        .settings-list-item button { background: none; border: none; color: #ff4757; cursor: pointer; padding: 0 4px; font-size: 14px; }
-        .add-item { display: flex; gap: 8px; }
-        .add-item input { flex: 1; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
-        .add-item button { padding: 10px 16px; background: var(--primary); border: none; border-radius: 8px; color: white; cursor: pointer; }
-        .partner-tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .partner-tag { padding: 8px 16px; background: var(--bg-dark); border-radius: 20px; cursor: pointer; border: 1px solid var(--border); font-size: 14px; transition: all 0.2s; }
-        .partner-tag.selected { border-color: var(--primary); background: rgba(233, 69, 96, 0.3); color: var(--primary); }
-        .partner-checkbox-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .partner-checkbox-item { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: var(--bg-dark); border-radius: 20px; cursor: pointer; border: 1px solid var(--border); font-size: 15px; }
-        .partner-checkbox-item.checked { border-color: var(--primary); background: rgba(233, 69, 96, 0.3); color: var(--primary); }
+        /* ========== 设置列表优化 ========== */
+        .settings-list { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px;
+        }
+        .settings-list-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 8px 14px; 
+            background: rgba(255, 255, 255, 0.04); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; 
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        .settings-list-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(233, 69, 96, 0.3);
+        }
+        .settings-list-item span { font-size: 14px; color: var(--text); }
+        .settings-list-item button { 
+            background: none; 
+            border: none; 
+            color: #ff4757; 
+            cursor: pointer; 
+            padding: 2px 6px; 
+            font-size: 14px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .settings-list-item button:hover {
+            opacity: 1;
+        }
+        .add-item { 
+            display: flex; 
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .add-item input { 
+            flex: 1; 
+            padding: 10px 14px; 
+            background: rgba(255, 255, 255, 0.06); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            border-radius: 8px; 
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .add-item input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.15);
+        }
+        .add-item button { 
+            padding: 10px 18px; 
+            background: var(--primary-gradient); 
+            border: none; 
+            border-radius: 8px; 
+            color: white; 
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .add-item button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+        }
+        
+        /* 搭子标签列表 */
+        .partner-tag-list { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px;
+        }
+        .partner-tag { 
+            padding: 8px 16px; 
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px;
+            transition: all 0.3s;
+            color: var(--text);
+        }
+        .partner-tag:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(233, 69, 96, 0.5);
+        }
+        .partner-tag.selected { 
+            border-color: var(--primary); 
+            background: rgba(233, 69, 96, 0.15); 
+            color: var(--primary);
+        }
+        
+        /* 搭子复选框列表 */
+        .partner-checkbox-list { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px;
+        }
+        .partner-checkbox-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            padding: 10px 16px; 
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px;
+            transition: all 0.3s;
+            color: var(--text);
+        }
+        .partner-checkbox-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(233, 69, 96, 0.5);
+        }
+        .partner-checkbox-item.checked { 
+            border-color: var(--primary); 
+            background: rgba(233, 69, 96, 0.15); 
+            color: var(--primary);
+        }
         .route-table { width: 100%; border-collapse: collapse; }
         .route-table th { text-align: left; padding: 8px; color: var(--text-secondary); font-size: 13px; border-bottom: 1px solid var(--border); }
         .route-table td { padding: 8px; border-bottom: 1px solid var(--border); }
@@ -434,11 +733,14 @@
     </div>
     
     <div class="settings-page" id="settingsPage">
-        <div class="settings-header" style="display: flex; align-items: center; justify-content: center; padding: 16px 20px; background: rgba(233, 69, 96, 0.1);">
+        <div class="settings-header" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(233, 69, 96, 0.1);">
+            <button onclick="closeSettings()" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);padding:8px 12px;border-radius:20px;border:1px solid var(--border);cursor:pointer;">
+                    <span style="color:var(--text);font-size:14px;">← 返回</span></button>
             <h2 style="margin: 0; font-size: 18px;">⚙️ 设置</h2>
+            <div style="width:88px;"></div>
         </div>
         <div class="settings-content" style="padding-bottom: 80px;">
-            <div class="settings-section">
+            <div class="settings-section" id="gymSettingsSection" style="display:none;">
                 <h3>🏋️ 岩馆品牌</h3>
                 <div id="gymCategories"></div>
                 <button onclick="openAddGymModal()" style="margin-top: 12px; width: 100%; padding: 12px; background: var(--bg-dark); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer;">+ 添加岩馆</button>
@@ -451,15 +753,10 @@
             <div class="settings-section">
                 <h3>🧗 抱石线路最高级别</h3>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="text" id="maxGrade" placeholder="例如：V6" style="flex:1;padding:10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);" onchange="saveMaxGrade(this.value)">
+                    <input type="text" id="maxGrade" placeholder="例如：V6" style="flex:1;padding:10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+                    <button onclick="saveMaxGrade()" style="padding:10px 16px;background:var(--primary-gradient);border:none;border-radius:8px;color:#fff;font-size:14px;cursor:pointer;">保存</button>
                 </div>
             </div>
-        </div>
-        
-        <!-- 设置页底部悬浮按钮 -->
-        <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; display: flex; gap: 12px; z-index: 100;">
-            <button onclick="closeSettings()" style="flex: 1; padding: 14px; background: #0f0f23; border: 1px solid #666; border-radius: 10px; color: #fff; font-size: 16px; cursor: pointer;">取消</button>
-            <button onclick="saveSettings(); closeSettings();" style="flex: 1; padding: 14px; background: var(--primary-gradient); border: none; border-radius: 10px; color: #fff; font-size: 16px; cursor: pointer;">保存</button>
         </div>
     </div>
     
@@ -577,6 +874,7 @@
                     return false;
                 }
                 currentUsername = data.username || '';
+                currentIsAdmin = data.is_admin || 0;
                 // 显示用户名
                 if (currentUsername) {
                     document.getElementById('userNameDisplay').textContent = currentUsername;
@@ -653,6 +951,7 @@
         let records = [];
         let settings = { gyms: { '香蕉': [], 'cube': [], 'upper': [], '闪电': [], '其他': [] }, partners: [], maxGrade: 'V6' };
         let currentUsername = '';
+        let currentIsAdmin = 0;
         
         // 初始化
         async function init() {
@@ -672,12 +971,14 @@
         // 从API加载设置
         async function loadSettings() {
             try {
-                const [gymsRes, partnersRes] = await Promise.all([
+                const [gymsRes, partnersRes, gradeRes] = await Promise.all([
                     fetch('/api/gyms'),
-                    fetch('/api/partners')
+                    fetch('/api/partners'),
+                    fetch('/api/settings/max_grade')
                 ]);
                 const gyms = await gymsRes.json();
                 const partners = await partnersRes.json();
+                const gradeData = await gradeRes.json();
                 
                 // 转换数据格式
                 const gymMap = { '香蕉': [], 'cube': [], 'upper': [], '闪电': [], '其他': [] };
@@ -688,6 +989,7 @@
                 });
                 settings.gyms = gymMap;
                 settings.partners = partners.map(p => p.name);
+                settings.maxGrade = gradeData.grade || 'V6';
             } catch (e) {
                 console.error('加载设置失败', e);
             }
@@ -709,25 +1011,42 @@
         document.getElementById('climbDate').value = getBeijingDateStr();
         renderCalendar();
         
-        function saveMaxGrade(value) {
+        function saveMaxGrade() {
+            const value = document.getElementById('maxGrade').value.trim() || 'V6';
             settings.maxGrade = value;
+            fetch('/api/settings/max_grade', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({grade: value})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function() { showToast('保存成功'); })
+            .catch(function(e) { console.error('保存最高级别失败', e); showToast('保存失败'); });
         }
         
+        let isSaving = false;
+        
         async function saveSettings() {
+            if (isSaving) return;
+            isSaving = true;
             // 保存到API - 先清空再添加（避免重复）
             try {
-                // 清空现有岩馆和搭子
-                await fetch('/api/gyms/clear', {method: 'POST'});
+                // 清空现有岩馆和搭子（岩馆仅管理员可操作）
+                if (currentIsAdmin) {
+                    await fetch('/api/gyms/clear', {method: 'POST'});
+                }
                 await fetch('/api/partners/clear', {method: 'POST'});
                 
-                // 重新添加所有岩馆
-                for (const cat in settings.gyms) {
-                    for (const gymName of settings.gyms[cat]) {
-                        await fetch('/api/gyms', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({gym_name: gymName, wall_type: cat})
-                        });
+                // 重新添加所有岩馆（仅管理员）
+                if (currentIsAdmin) {
+                    for (const cat in settings.gyms) {
+                        for (const gymName of settings.gyms[cat]) {
+                            await fetch('/api/gyms', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({gym_name: gymName, wall_type: cat})
+                            });
+                        }
                     }
                 }
                 
@@ -744,6 +1063,8 @@
                 await loadSettings();
             } catch (e) {
                 console.error('保存设置失败', e);
+            } finally {
+                isSaving = false;
             }
             
             renderSettings();
@@ -751,6 +1072,9 @@
         }
         
         function renderSettings() {
+            // 根据权限显示/隐藏岩馆配置
+            document.getElementById('gymSettingsSection').style.display = currentIsAdmin ? 'block' : 'none';
+            
             // 渲染品牌岩馆
             const gymCategories = document.getElementById('gymCategories');
             let html = '';
@@ -803,19 +1127,53 @@
             document.getElementById('addPartnerModal').style.display = 'flex';
         }
         
+        let pendingOps = new Set();
+        
         function removeGym(category, index) {
+            const gymName = settings.gyms[category][index];
+            const opKey = 'del_gym:' + gymName + ':' + category;
+            if (pendingOps.has(opKey)) return;
+            pendingOps.add(opKey);
             settings.gyms[category].splice(index, 1);
-            saveSettings();
+            renderSettings();
+            fetch('/api/gyms/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: gymName, wall_type: category})
+            })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('删除失败 ' + r.status);
+                    return r.json();
+                })
+                .then(function() { loadSettings(); })
+                .catch(function(e) { console.error('删除岩馆失败', e); loadSettings(); })
+                .finally(function() { pendingOps.delete(opKey); });
         }
         
         function removePartner(index) {
+            const name = settings.partners[index];
+            const opKey = 'del_partner:' + name;
+            if (pendingOps.has(opKey)) return;
+            pendingOps.add(opKey);
             settings.partners.splice(index, 1);
-            saveSettings();
+            renderSettings();
+            fetch('/api/partners/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('删除失败 ' + r.status);
+                    return r.json();
+                })
+                .then(function() { loadSettings(); })
+                .catch(function(e) { console.error('删除搭子失败', e); loadSettings(); })
+                .finally(function() { pendingOps.delete(opKey); });
         }
         
         function removeGrade(index) {
             settings.grades.splice(index, 1);
-            saveSettings();
+            renderSettings();
         }
         
         function addSetting(type) {
@@ -824,31 +1182,71 @@
                 const input = document.getElementById('newGymSetting');
                 const value = input.value.trim();
                 if (!value) return;
+                const opKey = 'add_gym:' + value + ':' + category;
+                if (pendingOps.has(opKey)) return;
                 if (!settings.gyms[category].includes(value)) {
+                    pendingOps.add(opKey);
                     settings.gyms[category].push(value);
-                    saveSettings();
+                    renderSettings();
+                    fetch('/api/gyms', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({gym_name: value, wall_type: category})
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function() { renderAddForm(); })
+                    .catch(function(e) { console.error('添加岩馆失败', e); loadSettings(); })
+                    .finally(function() { pendingOps.delete(opKey); });
                 }
                 input.value = '';
+                document.getElementById('addGymModal').style.display = 'none';
             } else {
                 const input = document.getElementById('newPartnerSetting');
                 const value = input.value.trim();
                 if (!value) return;
+                const opKey = 'add_partner:' + value;
+                if (pendingOps.has(opKey)) return;
                 if (!settings.partners.includes(value)) {
+                    pendingOps.add(opKey);
                     settings.partners.push(value);
-                    saveSettings();
+                    renderSettings();
+                    fetch('/api/partners', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({name: value})
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function() { renderAddForm(); })
+                    .catch(function(e) { console.error('添加搭子失败', e); loadSettings(); })
+                    .finally(function() { pendingOps.delete(opKey); });
                 }
                 input.value = '';
+                document.getElementById('addPartnerModal').style.display = 'none';
             }
         }
         
         function removeSetting(type, index) {
             settings[type + 's'].splice(index, 1);
-            saveSettings();
+            renderSettings();
         }
+        
+        let settingsBackup = null;
         
         function showSettings() {
             renderSettings();
             document.getElementById('settingsPage').classList.add('active');
+        }
+        
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            toast.style.opacity = '1';
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(function() {
+                toast.style.opacity = '0';
+                setTimeout(function() { toast.style.display = 'none'; }, 300);
+            }, 2000);
         }
         
         function closeSettings() {
@@ -1760,5 +2158,6 @@
             </div>
         </div>
     </div>
+    <div id="toast" style="display:none;position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:12px 24px;border-radius:24px;font-size:14px;z-index:99999;transition:opacity 0.3s;"></div>
 </body>
 </html>
