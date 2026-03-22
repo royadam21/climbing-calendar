@@ -727,7 +727,7 @@
             </form>
             <div class="modal-footer">
                 <button type="button" class="btn btn-cancel" onclick="closeModal('addModal')">取消</button>
-                <button type="submit" class="btn" form="addForm">保存记录</button>
+                <button type="submit" class="btn" form="addForm" id="saveRecordBtn">保存记录</button>
             </div>
         </div>
     </div>
@@ -1564,8 +1564,21 @@
             document.getElementById(id).classList.remove('active');
         }
         
+        // 保存记录时防止重复提交
+        let isSavingRecord = false;
+        
         document.getElementById('addForm').onsubmit = async function(e) {
             e.preventDefault();
+            
+            // 防重复点击
+            if (isSavingRecord) return;
+            isSavingRecord = true;
+            
+            // 按钮显示loading状态
+            var saveBtn = document.getElementById('saveRecordBtn');
+            var originalText = saveBtn.textContent;
+            saveBtn.textContent = '保存中...';
+            saveBtn.disabled = true;
             
             var gym = document.getElementById('gymName').value.trim();
             var date = document.getElementById('climbDate').value;
@@ -1623,6 +1636,11 @@
             } catch (err) {
                 alert('保存失败');
                 console.error(err);
+            } finally {
+                // 恢复按钮状态
+                isSavingRecord = false;
+                saveBtn.textContent = originalText;
+                saveBtn.disabled = false;
             }
         };
         
