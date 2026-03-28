@@ -336,3 +336,40 @@ def import_user_data(user_id, data, is_admin=0):
     
     conn.commit()
     conn.close()
+
+# ==================== 登录日志模块 ====================
+
+def add_login_log(user_id, username, ip_address=None, user_agent=None, success=1):
+    """记录登录日志"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'INSERT INTO login_logs (user_id, username, ip_address, user_agent, success) VALUES (?, ?, ?, ?, ?)',
+            (user_id, username, ip_address, user_agent, success)
+        )
+        conn.commit()
+        return cursor.lastrowid
+    except Exception as e:
+        print(f"添加登录日志失败: {e}")
+        return None
+    finally:
+        conn.close()
+
+def get_login_logs(limit=100):
+    """获取登录日志"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM login_logs ORDER BY login_time DESC LIMIT ?', (limit,))
+    logs = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return logs
+
+def get_login_logs_by_user(user_id, limit=50):
+    """获取指定用户的登录日志"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM login_logs WHERE user_id = ? ORDER BY login_time DESC LIMIT ?', (user_id, limit))
+    logs = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return logs

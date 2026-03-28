@@ -65,14 +65,20 @@ def login():
     data = request.json
     username = data.get('username')
     password = data.get('password')
+    ip_address = request.remote_addr
+    user_agent = request.headers.get('User-Agent', '')
     
     user = verify_user(username, password)
     if user:
         session['user_id'] = user['id']
         session['username'] = user['username']
         session['is_admin'] = user.get('is_admin', 0)
+        # 记录登录日志
+        add_login_log(user['id'], user['username'], ip_address, user_agent, 1)
         return jsonify({'success': True, 'username': user['username'], 'is_admin': user.get('is_admin', 0)})
     else:
+        # 记录失败登录
+        add_login_log(None, username, ip_address, user_agent, 0)
         return jsonify({'error': '用户名或密码错误'}), 401
 
 @app.route('/api/logout', methods=['POST'])
