@@ -344,8 +344,9 @@ def add_login_log(user_id, username, ip_address=None, user_agent=None, success=1
     conn = get_db()
     cursor = conn.cursor()
     try:
+        # 使用本地时间存储，不用 CURRENT_TIMESTAMP（UTC时间）
         cursor.execute(
-            'INSERT INTO login_logs (user_id, username, ip_address, user_agent, success) VALUES (?, ?, ?, ?, ?)',
+            "INSERT INTO login_logs (user_id, username, ip_address, user_agent, success, login_time) VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))",
             (user_id, username, ip_address, user_agent, success)
         )
         conn.commit()
