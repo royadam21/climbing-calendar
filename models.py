@@ -29,7 +29,7 @@ def create_user(username, password, is_admin=0):
     cursor = conn.cursor()
     try:
         cursor.execute(
-            'INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)',
+            "INSERT INTO users (username, password, is_admin, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))",
             (username, hash_password(password), is_admin)
         )
         conn.commit()
@@ -68,8 +68,8 @@ def add_record(user_id, date, gym, routes=None, type=None, duration=None, partne
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO records (user_id, date, gym, routes, type, duration, partners, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO records (user_id, date, gym, routes, type, duration, partners, notes, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
     ''', (user_id, date, gym, routes, type, duration, partners, notes))
     conn.commit()
     record_id = cursor.lastrowid
@@ -297,8 +297,8 @@ def import_user_data(user_id, data, is_admin=0):
                 notes = str(notes)
             
             cursor.execute('''
-                INSERT INTO records (user_id, date, gym, routes, type, duration, partners, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO records (user_id, date, gym, routes, type, duration, partners, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
             ''', (user_id, record['date'], record['gym'], str(routes) if routes else None, str(type_val) if type_val else None, duration, str(partners) if partners else None, str(notes) if notes else None))
     
     # 导入岩馆 - 支持新旧格式（岩馆是全局的，无user_id）
