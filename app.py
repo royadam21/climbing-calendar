@@ -6,6 +6,7 @@
 from flask import Flask, request, jsonify, session
 import os
 import json
+import datetime
 
 from models import (
     create_user, verify_user, get_user_by_id,
@@ -13,7 +14,8 @@ from models import (
     add_gym, get_gyms, delete_gym, delete_gym_by_name, clear_all_gyms,
     add_partner, get_partners, delete_partner, delete_partner_by_name,
     export_user_data, import_user_data,
-    get_max_grade, save_max_grade
+    get_max_grade, save_max_grade,
+    add_login_log
 )
 
 app = Flask(__name__)
@@ -73,6 +75,8 @@ def login():
         session['user_id'] = user['id']
         session['username'] = user['username']
         session['is_admin'] = user.get('is_admin', 0)
+        # 记录登录时间标记
+        session['_login_time'] = datetime.datetime.now().isoformat()
         # 记录登录日志
         add_login_log(user['id'], user['username'], ip_address, user_agent, 1)
         return jsonify({'success': True, 'username': user['username'], 'is_admin': user.get('is_admin', 0)})
@@ -93,6 +97,12 @@ def check_login():
     user_id = get_current_user_id()
     if user_id:
         user = get_user_by_id(user_id)
+        # 如果session存在但没有登录时间标记（session恢复的情况），补记登录日志
+        if '_login_time' not in session:
+            session['_login_time'] = datetime.datetime.now().isoformat()
+            ip_address = request.remote_addr
+            user_agent = request.headers.get('User-Agent', '')
+            add_login_log(user['id'], user['username'], ip_address, user_agent, 1)
         return jsonify({'logged_in': True, 'username': user['username'], 'is_admin': user.get('is_admin', 0)})
     return jsonify({'logged_in': False})
 
