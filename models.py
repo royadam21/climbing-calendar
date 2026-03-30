@@ -33,11 +33,15 @@ def create_user(username, password, is_admin=0):
             (username, hash_password(password), is_admin)
         )
         conn.commit()
-        return cursor.lastrowid
-    except sqlite3.IntegrityError:
-        return None  # 用户名已存在
-    finally:
+        user_id = cursor.lastrowid
+        # 为新用户初始化城市偏好
+        cursor.execute("INSERT INTO user_city_preferences (user_id, last_city) VALUES (?, '深圳')", (user_id,))
+        conn.commit()
         conn.close()
+        return user_id
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None  # 用户名已存在
 
 def verify_user(username, password):
     """验证用户登录"""
@@ -59,18 +63,35 @@ def get_user_by_id(user_id):
     user = cursor.fetchone()
     conn.close()
     return dict(user) if user else None
-    return dict(user) if user else None
+
+def is_city_manager(user_id):
+    """检查用户是否是城市管理员"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) FROM city_managers WHERE user_id = ?', (user_id,))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count > 0
+
+def get_managed_cities(user_id):
+    """获取用户负责的城市列表"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT city FROM city_managers WHERE user_id = ?', (user_id,))
+    cities = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return cities
 
 # ==================== 爬墙记录模型 ====================
 
-def add_record(user_id, date, gym, routes=None, type=None, duration=None, partners=None, notes=None):
+def add_record(user_id, date, gym, city=None, routes=None, type=None, duration=None, partners=None, notes=None):
     """添加爬墙记录"""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO records (user_id, date, gym, routes, type, duration, partners, notes, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
-    ''', (user_id, date, gym, routes, type, duration, partners, notes))
+        INSERT INTO records (user_id, date, gym, city, routes, type, duration, partners, notes, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+    ''', (user_id, date, gym, city, routes, type, duration, partners, notes))
     conn.commit()
     record_id = cursor.lastrowid
     conn.close()
@@ -87,7 +108,7 @@ def get_records(user_id):
     conn.close()
     return records
 
-def update_record(record_id, user_id, date=None, gym=None, routes=None, type=None, duration=None, partners=None, notes=None):
+def update_record(record_id, user_id, date=None, gym=None, city=None, routes=None, type=None, duration=None, partners=None, notes=None):
     """更新爬墙记录"""
     conn = get_db()
     cursor = conn.cursor()
@@ -102,11 +123,12 @@ def update_record(record_id, user_id, date=None, gym=None, routes=None, type=Non
     # 更新字段
     cursor.execute('''
         UPDATE records 
-        SET date = ?, gym = ?, routes = ?, type = ?, duration = ?, partners = ?, notes = ?
+        SET date = ?, gym = ?, city = ?, routes = ?, type = ?, duration = ?, partners = ?, notes = ?
         WHERE id = ? AND user_id = ?
     ''', (
         date or existing['date'],
         gym or existing['gym'],
+        city if city is not None else existing['city'],
         routes if routes is not None else existing['routes'],
         type or existing['type'],
         duration if duration is not None else existing['duration'],
@@ -138,22 +160,34 @@ def clear_all_records(user_id):
 
 # ==================== 岩馆模型 ====================
 
-def add_gym(user_id, gym_name, wall_type=None):
+def add_gym(user_id, gym_name, wall_type=None, city=None):
     """添加岩馆（全局，无用户区分）"""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        'INSERT INTO gyms (gym_name, wall_type) VALUES (?, ?)',
-        (gym_name, wall_type)
+        'INSERT INTO gyms (gym_name, wall_type, city) VALUES (?, ?, ?)',
+        (gym_name, wall_type, city or '深圳')
     )
     conn.commit()
     conn.close()
 
-def get_gyms(user_id):
+def get_gyms(user_id, city=None):
     """获取岩馆列表（全局，所有用户共享）"""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('SELECT id, gym_name, wall_type FROM gyms ORDER BY id')
+    if city:
+        cursor.execute('SELECT id, gym_name, wall_type, city FROM gyms WHERE city = ? ORDER BY id', (city,))
+    else:
+        cursor.execute('SELECT id, gym_name, wall_type, city FROM gyms ORDER BY id')
+    gyms = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return gyms
+
+def get_gyms_by_city(city):
+    """获取指定城市的岩馆列表"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, gym_name, wall_type, city FROM gyms WHERE city = ? ORDER BY id', (city,))
     gyms = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return gyms
@@ -166,11 +200,13 @@ def delete_gym(gym_id):
     conn.commit()
     conn.close()
 
-def delete_gym_by_name(gym_name, wall_type=None):
+def delete_gym_by_name(gym_name, wall_type=None, city=None):
     """按名称删除岩馆（全局）"""
     conn = get_db()
     cursor = conn.cursor()
-    if wall_type:
+    if wall_type and city:
+        cursor.execute('DELETE FROM gyms WHERE gym_name = ? AND wall_type = ? AND city = ?', (gym_name, wall_type, city))
+    elif wall_type:
         cursor.execute('DELETE FROM gyms WHERE gym_name = ? AND wall_type = ?', (gym_name, wall_type))
     else:
         cursor.execute('DELETE FROM gyms WHERE gym_name = ?', (gym_name,))
@@ -256,6 +292,50 @@ def save_max_grade(user_id, grade):
     conn.commit()
     conn.close()
 
+def get_min_grade(user_id):
+    """获取用户最低级别"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT min_grade FROM user_settings WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return dict(row)['min_grade'] if isinstance(row, sqlite3.Row) else row[0]
+        return 'V0'
+    except Exception:
+        conn.close()
+        return 'V0'
+
+def save_min_grade(user_id, grade):
+    """保存用户最低级别"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR REPLACE INTO user_settings (user_id, min_grade) VALUES (?, ?)', (user_id, grade))
+    conn.commit()
+    conn.close()
+
+# ==================== 用户城市偏好 ====================
+
+def get_user_city_preference(user_id):
+    """获取用户上次选择的城市的城市"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT last_city FROM user_city_preferences WHERE user_id = ?', (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return row[0]
+    return '深圳'
+
+def save_user_city_preference(user_id, city):
+    """保存用户选择的城市的偏好"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR REPLACE INTO user_city_preferences (user_id, last_city) VALUES (?, ?)', (user_id, city))
+    conn.commit()
+    conn.close()
+
 # ==================== 数据导入导出 ====================
 
 def export_user_data(user_id):
@@ -297,9 +377,9 @@ def import_user_data(user_id, data, is_admin=0):
                 notes = str(notes)
             
             cursor.execute('''
-                INSERT INTO records (user_id, date, gym, routes, type, duration, partners, notes, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
-            ''', (user_id, record['date'], record['gym'], str(routes) if routes else None, str(type_val) if type_val else None, duration, str(partners) if partners else None, str(notes) if notes else None))
+                INSERT INTO records (user_id, date, gym, city, routes, type, duration, partners, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+            ''', (user_id, record['date'], record['gym'], record.get('city'), str(routes) if routes else None, str(type_val) if type_val else None, duration, str(partners) if partners else None, str(notes) if notes else None))
     
     # 导入岩馆 - 支持新旧格式（岩馆是全局的，无user_id）
     if 'settings' in data and 'gyms' in data['settings']:
@@ -307,15 +387,15 @@ def import_user_data(user_id, data, is_admin=0):
         for category, gym_list in data['settings']['gyms'].items():
             for gym_name in gym_list:
                 cursor.execute(
-                    'INSERT INTO gyms (gym_name, wall_type) VALUES (?, ?)',
-                    (gym_name, category)
+                    'INSERT INTO gyms (gym_name, wall_type, city) VALUES (?, ?, ?)',
+                    (gym_name, category, '深圳')
                 )
     elif 'gyms' in data:
-        # 新格式: gyms 是 [{gym_name, wall_type}]，岩馆是全局的
+        # 新格式: gyms 是 [{gym_name, wall_type, city}]，岩馆是全局的
         for gym in data['gyms']:
             cursor.execute(
-                'INSERT INTO gyms (gym_name, wall_type) VALUES (?, ?)',
-                (gym.get('gym_name'), gym.get('wall_type'))
+                'INSERT INTO gyms (gym_name, wall_type, city) VALUES (?, ?, ?)',
+                (gym.get('gym_name'), gym.get('wall_type'), gym.get('city', '深圳'))
             )
     
     # 导入搭子 - 支持新旧格式
