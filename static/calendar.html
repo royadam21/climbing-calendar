@@ -720,16 +720,19 @@
                 <button class="modal-close" onclick="closeModal('addModal')">×</button>
             </div>
             <form id="addForm" class="modal-body">
-                <div class="form-group">
-                    <label>岩馆品牌 *</label>
-                    <select id="gymCategory" onchange="updateGymOptions()" required>
-                        <option value="">请选择品牌</option>
-                        <option value="香蕉">🍌 香蕉</option>
-                        <option value="cube">📦 cube</option>
-                        <option value="upper">⬆️ upper</option>
-                        <option value="闪电">⚡ 闪电</option>
-                        <option value="其他">📍 其他</option>
-                    </select>
+                <div class="form-group" style="display:flex;gap:10px;align-items:center;">
+                    <div style="flex:1;">
+                        <label>城市 *</label>
+                        <select id="recordCity" onchange="updateBrandOptions(); saveCityPreference();" required>
+                            <option value="">请选择城市</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label>岩馆品牌 *</label>
+                        <select id="gymCategory" onchange="updateGymOptions()" required>
+                            <option value="">请先选择城市</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>岩馆名称 *</label>
@@ -786,9 +789,13 @@
         </div>
         <div class="settings-content" style="padding-bottom: 80px;">
             <div class="settings-section" id="gymSettingsSection" style="display:none;">
-                <h3>🏋️ 岩馆品牌</h3>
+                <div id="gymTitleRow" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="margin: 0;">🏋️ 岩馆品牌</h3>
+                    <select id="gymCitySelector" onchange="renderGymSettingsByCity(this.value)" style="padding: 6px 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; min-width: 90px;">
+                    </select>
+                </div>
                 <div id="gymCategories"></div>
-                <button onclick="openAddGymModal()" style="margin-top: 12px; width: 100%; padding: 12px; background: var(--bg-dark); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer;">+ 添加岩馆</button>
+                <button onclick="openAddGymModal()" style="margin-top: 12px; width: 100%; padding: 12px; background: var(--bg-dark); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer;">+ 添加品牌</button>
             </div>
             <div class="settings-section">
                 <h3>👥 可选搭子</h3>
@@ -796,10 +803,16 @@
                 <button onclick="openAddPartnerModal()" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer;">+ 添加搭子</button>
             </div>
             <div class="settings-section">
-                <h3>🧗 抱石线路最高级别</h3>
-                <div style="display:flex; align-items:center; gap:10px;">
+                <h3>🧗 抱石线路级别范围</h3>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <span style="color:var(--text-secondary);font-size:14px;">最低级：</span>
+                    <input type="text" id="minGrade" placeholder="例如：V0" style="flex:1;padding:10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+                    <span style="color:var(--text-secondary);font-size:14px;">最高级：</span>
                     <input type="text" id="maxGrade" placeholder="例如：V6" style="flex:1;padding:10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);">
-                    <button onclick="saveMaxGrade()" style="padding:10px 16px;background:var(--primary-gradient);border:none;border-radius:8px;color:#fff;font-size:14px;cursor:pointer;">保存</button>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="saveMinGrade()" style="flex:1;padding:10px 16px;background:var(--primary-gradient);border:none;border-radius:8px;color:#fff;font-size:14px;cursor:pointer;">保存最低级</button>
+                    <button onclick="saveMaxGrade()" style="flex:1;padding:10px 16px;background:var(--primary-gradient);border:none;border-radius:8px;color:#fff;font-size:14px;cursor:pointer;">保存最高级</button>
                 </div>
             </div>
         </div>
@@ -994,7 +1007,7 @@
         Chart.register(ChartDataLabels);
         
         let records = [];
-        let settings = { gyms: { '香蕉': [], 'cube': [], 'upper': [], '闪电': [], '其他': [] }, partners: [], maxGrade: 'V6' };
+        let settings = { gyms: [], partners: [], maxGrade: 'V6', minGrade: 'V0', selectedCity: '深圳', managedCities: [], isCityManager: false };
         let currentUsername = '';
         let currentIsAdmin = 0;
         
@@ -1003,6 +1016,8 @@
             const isLoggedIn = await checkLogin();
             if (!isLoggedIn) return;
             
+            // 加载城市管理员状态
+            await loadCityManagerStatus();
             // 加载数据
             await loadSettings();
             await loadRecords();
@@ -1013,28 +1028,50 @@
             renderCalendar();
         }
         
+        // 从API加载城市管理员状态
+        async function loadCityManagerStatus() {
+            try {
+                const res = await fetch('/api/settings/managed_cities');
+                const data = await res.json();
+                settings.isCityManager = data.is_city_manager;
+                settings.managedCities = data.managed_cities || [];
+                settings.selectedCity = settings.managedCities.length > 0 ? settings.managedCities[0] : '深圳';
+            } catch (e) {
+                console.error('加载城市管理员状态失败', e);
+                settings.isCityManager = false;
+                settings.managedCities = [];
+            }
+        }
+        
         // 从API加载设置
         async function loadSettings() {
             try {
-                const [gymsRes, partnersRes, gradeRes] = await Promise.all([
+                const [gymsRes, partnersRes, maxGradeRes, minGradeRes, cityPrefRes] = await Promise.all([
                     fetch('/api/gyms'),
                     fetch('/api/partners'),
-                    fetch('/api/settings/max_grade')
+                    fetch('/api/settings/max_grade'),
+                    fetch('/api/settings/min_grade'),
+                    fetch('/api/settings/city_preference')
                 ]);
                 const gyms = await gymsRes.json();
                 const partners = await partnersRes.json();
-                const gradeData = await gradeRes.json();
+                const maxGradeData = await maxGradeRes.json();
+                const minGradeData = await minGradeRes.json();
+                const cityPrefData = await cityPrefRes.json();
                 
-                // 转换数据格式
-                const gymMap = { '香蕉': [], 'cube': [], 'upper': [], '闪电': [], '其他': [] };
-                gyms.forEach(g => {
-                    const cat = g.wall_type || '其他';
-                    if (!gymMap[cat]) gymMap[cat] = [];
-                    gymMap[cat].push(g.gym_name);
-                });
-                settings.gyms = gymMap;
+                // 保存原始岩馆数据（数组格式）
+                settings.gyms = gyms;
                 settings.partners = partners.map(p => p.name);
-                settings.maxGrade = gradeData.grade || 'V6';
+                settings.maxGrade = maxGradeData.grade || 'V6';
+                settings.minGrade = minGradeData.grade || 'V0';
+                // 优先使用用户保存的城市偏好
+                if (cityPrefData.city) {
+                    settings.selectedCity = cityPrefData.city;
+                } else if (settings.managedCities.length > 0) {
+                    settings.selectedCity = settings.managedCities[0];
+                } else {
+                    settings.selectedCity = '深圳';
+                }
             } catch (e) {
                 console.error('加载设置失败', e);
             }
@@ -1067,6 +1104,19 @@
             .then(function(r) { return r.json(); })
             .then(function() { showToast('保存成功'); })
             .catch(function(e) { console.error('保存最高级别失败', e); showToast('保存失败'); });
+        }
+        
+        function saveMinGrade() {
+            const value = document.getElementById('minGrade').value.trim() || 'V0';
+            settings.minGrade = value;
+            fetch('/api/settings/min_grade', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({grade: value})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function() { showToast('保存成功'); })
+            .catch(function(e) { console.error('保存最低级别失败', e); showToast('保存失败'); });
         }
         
         let isSaving = false;
@@ -1117,37 +1167,125 @@
         }
         
         function renderSettings() {
-            // 根据权限显示/隐藏岩馆配置
-            document.getElementById('gymSettingsSection').style.display = currentIsAdmin ? 'block' : 'none';
+            // 根据权限显示/隐藏岩馆配置（全局管理员或城市管理员）
+            const canManageGyms = currentIsAdmin || settings.isCityManager;
+            document.getElementById('gymSettingsSection').style.display = canManageGyms ? 'block' : 'none';
             
-            // 渲染品牌岩馆
+            // 渲染品牌岩馆（按城市分组）
             const gymCategories = document.getElementById('gymCategories');
+            
+            // 按城市分组
+            const gymsByCity = {};
+            settings.gyms.forEach(g => {
+                const city = g.city || '深圳';
+                if (!gymsByCity[city]) gymsByCity[city] = {};
+                const brand = g.wall_type || '其他';
+                if (!gymsByCity[city][brand]) gymsByCity[city][brand] = [];
+                gymsByCity[city][brand].push(g);
+            });
+            
             let html = '';
-            const categoryNames = { '香蕉': '🍌 香蕉', 'cube': '📦 cube', 'upper': '⬆️ upper', '闪电': '⚡ 闪电', '其他': '📍 其他' };
-            for (const cat in settings.gyms) {
-                var isExpanded = false; // 默认收起
+            const categoryNames = { '香蕉': '🍌 香蕉', 'cube': '📦 cube', 'upper': '⬆️ upper', '闪电': '⚡ 闪电', '其他': '📍 其他', '顽攀': '🧗 顽攀', '噜呐攀岩': '🧗 噜呐攀岩' };
+            
+            // 填充城市选择器
+            const citySelector = document.getElementById('gymCitySelector');
+            if (settings.isCityManager && settings.managedCities.length > 0) {
+                citySelector.innerHTML = '';
+                settings.managedCities.forEach(city => {
+                    var opt = document.createElement('option');
+                    opt.value = city;
+                    opt.textContent = city;
+                    citySelector.appendChild(opt);
+                });
+                citySelector.style.display = 'inline-block';
+                citySelector.value = settings.selectedCity || settings.managedCities[0] || '深圳';
+            } else {
+                citySelector.style.display = 'none';
+            }
+            
+            // 渲染当前城市的岩馆
+            const currentCity = settings.isCityManager ? (settings.managedCities[0] || '深圳') : '深圳';
+            const cityGyms = gymsByCity[currentCity] || {};
+            
+            for (const brand in cityGyms) {
                 html += '<div class="gym-category">';
-                html += '<div onclick="toggleGymCategory(this)" style="cursor: pointer; padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">';
-                html += '<h4 style="margin: 0;">' + (categoryNames[cat] || cat) + '</h4>';
-                html += '<span style="color: var(--text-secondary);">' + (isExpanded ? '▼' : '▶') + '</span>';
+                html += '<div style="cursor: pointer; padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">';
+                html += '<h4 style="margin: 0;">' + (categoryNames[brand] || brand) + ' <span style="color: var(--text-secondary); font-size: 12px;">(' + currentCity + ')</span></h4>';
+                html += '<button onclick="openAddGymModalForBrand(\'' + brand + '\')" style="padding: 4px 8px; background: var(--primary-gradient); border: none; border-radius: 4px; color: #fff; font-size: 12px; cursor: pointer;">+ 添加</button>';
                 html += '</div>';
-                html += '<div class="settings-list" style="display: ' + (isExpanded ? 'flex' : 'none') + ';">';
-                if (settings.gyms[cat].length === 0) {
-                    html += '<div style="color: var(--text-secondary); font-size: 12px; padding: 8px 0;">暂无岩馆</div>';
-                } else {
-                    settings.gyms[cat].forEach(function(g, i) {
-                        html += '<div class="settings-list-item"><span>' + g + '</span><button onclick="removeGym(\'' + cat + '\',' + i + ')">✕</button></div>';
+                html += '<div class="settings-list">';
+                // 过滤有效岩馆：gym_name不为空，且gym_name不等于wall_type（后者表示这只是品牌标识）
+                var validGyms = cityGyms[brand].filter(function(g) { return g.gym_name && g.gym_name.trim() !== '' && g.gym_name !== brand; });
+                if (validGyms.length > 0) {
+                    validGyms.forEach(function(g) {
+                        html += '<div class="settings-list-item"><span>' + g.gym_name + '</span><button onclick="removeGymById(' + g.id + ')">✕</button></div>';
                     });
                 }
                 html += '</div></div>';
             }
+            
+            if (Object.keys(cityGyms).length === 0) {
+                html += '<div style="color: var(--text-secondary); font-size: 14px; padding: 12px 0;">该城市暂无品牌，请点击上方"+ 添加品牌"按钮添加</div>';
+            }
+            
             gymCategories.innerHTML = html;
             
             // 渲染搭子
             document.getElementById('partnerSettingsList').innerHTML = settings.partners.map(function(p, i) { return '<div class="settings-list-item"><span>' + p + '</span><button onclick="removePartner(' + i + ')">✕</button></div>'; }).join('');
             
-            // 渲染最高级别
+            // 渲染最高级别和最低级别
             document.getElementById('maxGrade').value = settings.maxGrade || 'V6';
+            document.getElementById('minGrade').value = settings.minGrade || 'V0';
+        }
+        
+        function renderGymSettingsByCity(city) {
+            // 根据选择的城市重新渲染岩馆列表
+            const gymsByCity = {};
+            settings.gyms.forEach(g => {
+                const c = g.city || '深圳';
+                if (!gymsByCity[c]) gymsByCity[c] = {};
+                const brand = g.wall_type || '其他';
+                if (!gymsByCity[c][brand]) gymsByCity[c][brand] = [];
+                gymsByCity[c][brand].push(g);
+            });
+            
+            const cityGyms = gymsByCity[city] || {};
+            const categoryNames = { '香蕉': '🍌 香蕉', 'cube': '📦 cube', 'upper': '⬆️ upper', '闪电': '⚡ 闪电', '其他': '📍 其他', '顽攀': '🧗 顽攀', '噜呐攀岩': '🧗 噜呐攀岩' };
+            
+            // 当前城市的品牌列表
+            const cityBrands = Object.keys(cityGyms).sort();
+            
+            let html = '';
+            
+            // 渲染当前城市的品牌
+            cityBrands.forEach(function(brand) {
+                const brandGyms = cityGyms[brand] || [];
+                html += '<div class="gym-category">';
+                html += '<div style="padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">';
+                html += '<h4 style="margin: 0;">' + (categoryNames[brand] || brand) + ' <span style="color: var(--text-secondary); font-size: 12px;">(' + city + ')</span></h4>';
+                html += '<button onclick="openAddGymModalForBrand(\'' + brand + '\')" style="padding: 4px 8px; background: var(--primary-gradient); border: none; border-radius: 4px; color: #fff; font-size: 12px; cursor: pointer;">+ 添加</button>';
+                html += '</div>';
+                html += '<div class="settings-list">';
+                if (brandGyms.length > 0) {
+                    brandGyms.forEach(function(g) {
+                        html += '<div class="settings-list-item"><span>' + g.gym_name + '</span><button onclick="removeGymById(' + g.id + ')">✕</button></div>';
+                    });
+                }
+                html += '</div></div>';
+            });
+            
+            if (cityBrands.length === 0) {
+                html += '<div style="color: var(--text-secondary); font-size: 14px; padding: 12px 0;">该城市暂无品牌，请点击上方"+ 添加品牌"按钮添加</div>';
+            }
+            
+            // 替换gymCategories的内容
+            document.getElementById('gymCategories').innerHTML = html;
+            
+            // 更新城市选择器的值
+            const citySelector = document.getElementById('gymCitySelector');
+            if (citySelector) {
+                citySelector.value = city;
+            }
         }
         
         function toggleGymCategory(header) {
@@ -1195,6 +1333,59 @@
                 .finally(function() { pendingOps.delete(opKey); });
         }
         
+        function removeGymById(gymId) {
+            showConfirm('确认删除', '确定要删除这个岩馆吗？', function() {
+                // 先从本地settings中移除，立即更新UI
+                settings.gyms = settings.gyms.filter(function(g) { return g.id !== gymId; });
+                renderSettings();
+                
+                // 发送到服务器删除
+                fetch('/api/gyms/' + gymId, { method: 'DELETE' })
+                    .then(function(r) { return r.json(); })
+                    .then(function() { showToast('删除成功'); })
+                    .catch(function(e) { console.error('删除岩馆失败', e); loadSettings(); });
+            });
+        }
+        
+        let pendingBrandForGym = null;
+        
+        function openAddGymModalForBrand(brand) {
+            pendingBrandForGym = brand;
+            document.getElementById('addGymByBrandTitle').textContent = '为「' + brand + '」添加岩馆';
+            document.getElementById('newGymByBrandName').value = '';
+            document.getElementById('addGymByBrandModal').style.display = 'flex';
+        }
+        
+        function addGymToBrand() {
+            const gymName = document.getElementById('newGymByBrandName').value.trim();
+            if (!gymName) return;
+            
+            const citySelect = document.getElementById('gymCitySelector');
+            const city = citySelect ? citySelect.value : '深圳';
+            const brand = pendingBrandForGym;
+            
+            // 检查是否已存在
+            const exists = settings.gyms.some(g => g.gym_name === gymName && g.wall_type === brand && g.city === city);
+            if (exists) {
+                document.getElementById('addGymByBrandModal').style.display = 'none';
+                showToast('该岩馆已存在');
+                return;
+            }
+            
+            fetch('/api/gyms', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({gym_name: gymName, wall_type: brand, city: city})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function() { 
+                document.getElementById('addGymByBrandModal').style.display = 'none';
+                loadSettings().then(() => { renderSettings(); renderAddForm(); });
+                showToast('添加成功');
+            })
+            .catch(function(e) { console.error('添加岩馆失败', e); loadSettings(); });
+        }
+        
         function removePartner(index) {
             const name = settings.partners[index];
             const opKey = 'del_partner:' + name;
@@ -1223,26 +1414,34 @@
         
         function addSetting(type) {
             if (type === 'gym') {
-                const category = document.getElementById('gymCategorySetting').value;
                 const input = document.getElementById('newGymSetting');
                 const value = input.value.trim();
                 if (!value) return;
-                const opKey = 'add_gym:' + value + ':' + category;
-                if (pendingOps.has(opKey)) return;
-                if (!settings.gyms[category].includes(value)) {
-                    pendingOps.add(opKey);
-                    settings.gyms[category].push(value);
-                    renderSettings();
-                    fetch('/api/gyms', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({gym_name: value, wall_type: category})
-                    })
-                    .then(function(r) { return r.json(); })
-                    .then(function() { renderAddForm(); })
-                    .catch(function(e) { console.error('添加岩馆失败', e); loadSettings(); })
-                    .finally(function() { pendingOps.delete(opKey); });
+                
+                // 获取当前设置页选择的城市
+                const citySelect = document.getElementById('gymCitySelector');
+                const city = citySelect ? citySelect.value : '深圳';
+                
+                // 检查该城市下是否已存在该品牌
+                const exists = settings.gyms.some(g => g.wall_type === value && g.city === city);
+                
+                if (exists) {
+                    input.value = '';
+                    document.getElementById('addGymModal').style.display = 'none';
+                    showToast('该品牌已存在');
+                    return;
                 }
+                
+                // 添加新品牌 - 品牌名作为岩馆名，标识这个品牌存在
+                fetch('/api/gyms', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({gym_name: value, wall_type: value, city: city})
+                })
+                .then(function(r) { return r.json(); })
+                .then(function() { loadSettings().then(() => { renderSettings(); renderAddForm(); }); })
+                .catch(function(e) { console.error('添加品牌失败', e); loadSettings(); });
+                
                 input.value = '';
                 document.getElementById('addGymModal').style.display = 'none';
             } else {
@@ -1353,8 +1552,18 @@
         }
         
         function renderAddForm() {
-            // 初始化岩馆品牌下拉
-            updateGymOptions();
+            // 初始化城市下拉
+            const citySelect = document.getElementById('recordCity');
+            const cities = getCityList();
+            let cityHtml = '<option value="">请选择城市</option>';
+            cities.forEach(c => {
+                cityHtml += '<option value="' + c + '">' + c + '</option>';
+            });
+            citySelect.innerHTML = cityHtml;
+            citySelect.value = settings.selectedCity || '深圳';
+            
+            // 初始化岩馆品牌下拉（根据选中城市）
+            updateBrandOptions();
             
             // 渲染搭子
             const partnerList = document.getElementById('partnerList');
@@ -1367,17 +1576,79 @@
             updateRouteOptions();
         }
         
-        function updateGymOptions() {
-            const category = document.getElementById('gymCategory').value;
+        // 保存用户城市偏好
+        function saveCityPreference() {
+            const city = document.getElementById('recordCity').value;
+            if (city) {
+                settings.selectedCity = city;
+                fetch('/api/settings/city_preference', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({city: city})
+                }).catch(e => console.error('保存城市偏好失败', e));
+            }
+        }
+        
+        // 获取城市列表
+        function getCityList() {
+            const cities = new Set();
+            settings.gyms.forEach(g => {
+                if (g.city) cities.add(g.city);
+            });
+            return Array.from(cities).sort();
+        }
+        
+        // 获取某城市的品牌列表
+        function getBrandsByCity(city) {
+            const brands = new Set();
+            settings.gyms.forEach(g => {
+                if (g.city === city && g.wall_type) brands.add(g.wall_type);
+            });
+            return Array.from(brands).sort();
+        }
+        
+        // 获取某城市某品牌的岩馆列表
+        function getGymsByCityAndBrand(city, brand) {
+            return settings.gyms.filter(g => g.city === city && g.wall_type === brand);
+        }
+        
+        // 更新品牌选项（根据选中的城市）
+        function updateBrandOptions() {
+            const city = document.getElementById('recordCity').value;
+            const brandSelect = document.getElementById('gymCategory');
             const gymSelect = document.getElementById('gymName');
-            if (!category) {
+            
+            // 保存当前选中的品牌
+            const currentBrand = brandSelect.value;
+            
+            // 更新品牌选项
+            const brands = getBrandsByCity(city);
+            let brandHtml = '<option value="">请选择品牌</option>';
+            brands.forEach(b => {
+                brandHtml += '<option value="' + b + '">' + b + '</option>';
+            });
+            brandSelect.innerHTML = brandHtml;
+            
+            // 清空岩馆选项
+            gymSelect.innerHTML = '<option value="">请先选择品牌</option>';
+        }
+        
+        // 更新岩馆选项（根据选中的城市和品牌）
+        function updateGymOptions() {
+            const city = document.getElementById('recordCity').value;
+            const brand = document.getElementById('gymCategory').value;
+            const gymSelect = document.getElementById('gymName');
+            
+            if (!brand) {
                 gymSelect.innerHTML = '<option value="">请先选择品牌</option>';
                 return;
             }
+            
+            const gyms = getGymsByCityAndBrand(city, brand);
             let optionsHtml = '';
-            if (settings.gyms[category] && settings.gyms[category].length > 0) {
-                settings.gyms[category].forEach(function(g) {
-                    optionsHtml += '<option value="' + g + '">' + g + '</option>';
+            if (gyms.length > 0) {
+                gyms.forEach(function(g) {
+                    optionsHtml += '<option value="' + g.gym_name + '">' + g.gym_name + '</option>';
                 });
             } else {
                 optionsHtml = '<option value="">该品牌暂无岩馆</option>';
@@ -1392,7 +1663,7 @@
             
             if (type === '抱石') {
                 var maxGrade = settings.maxGrade ? parseInt(settings.maxGrade.replace('V', '')) : 6;
-                var minGrade = 3;
+                var minGrade = settings.minGrade ? parseInt(settings.minGrade.replace('V', '')) : 0;
                 for (var grade = maxGrade; grade >= minGrade; grade--) {
                     routeTableHTML += '<tr><td>V' + grade + '</td><td><input type="number" min="0" data-grade="V' + grade + '" placeholder="0"></td></tr>';
                 }
@@ -1560,14 +1831,16 @@
             renderAddForm();
             
             // 填充表单
-            // 根据岩馆名推算品牌并设置
-            var foundCategory = '';
-            for (var cat in settings.gyms) {
-                if (settings.gyms[cat].includes(record.gym)) {
-                    foundCategory = cat;
-                    break;
-                }
-            }
+            // 根据岩馆名推算品牌和城市并设置
+            var foundGym = settings.gyms.find(function(g) { return g.gym_name === record.gym; });
+            var foundCity = foundGym ? foundGym.city : (record.city || settings.selectedCity || '深圳');
+            var foundCategory = foundGym ? foundGym.wall_type : '';
+            
+            // 设置城市
+            document.getElementById('recordCity').value = foundCity;
+            updateBrandOptions();
+            
+            // 设置品牌
             document.getElementById('gymCategory').value = foundCategory;
             updateGymOptions();
             document.getElementById('gymName').value = record.gym;
@@ -1845,21 +2118,20 @@
             
             // 岩馆颜色配置（按品牌）- 使用settings中的品牌
             function getGymColor(gymName) {
-                // 遍历settings.gyms找到品牌
-                for (var brand in settings.gyms) {
-                    if (settings.gyms[brand].includes(gymName)) {
-                        // 品牌对应颜色
-                        var brandColors = {
-                            '香蕉': '#ffd32a',    // 黄色
-                            'cube': '#1e90ff',    // 蓝色
-                            'upper': '#ff4757',   // 红色
-                            '闪电': '#8e44ad',    // 紫色
-                            '其他': '#2ed573'     // 绿色
-                        };
-                        return brandColors[brand] || '#e94560';
-                    }
-                }
-                return '#e94560'; // 默认粉色
+                // 遍历settings.gyms数组找到品牌
+                var foundGym = settings.gyms.find(function(g) { return g.gym_name === gymName; });
+                var brand = foundGym ? foundGym.wall_type : '其他';
+                // 品牌对应颜色
+                var brandColors = {
+                    '香蕉': '#ffd32a',    // 黄色
+                    'cube': '#1e90ff',    // 蓝色
+                    'upper': '#ff4757',   // 红色
+                    '闪电': '#8e44ad',    // 紫色
+                    '其他': '#2ed573',    // 绿色
+                    '顽攀': '#ff6b6b',    // 红色
+                    '噜呐攀岩': '#48dbfb'  // 青色
+                };
+                return brandColors[brand] || '#e94560';
             }
             
             var gymArray = Object.keys(gymDaysMap)
@@ -2157,7 +2429,8 @@
     </script>
     
     <!-- 意见反馈弹窗 -->
-    <div class="import-export-modal" id="feedbackModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:3000; align-items:center; justify-content:center; padding:20px;">
+
+        <div class="import-export-modal" id="feedbackModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:3000; align-items:center; justify-content:center; padding:20px;">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2>💬 意见反馈</h2>
@@ -2192,27 +2465,32 @@
         </div>
     </div>
     
-    <!-- 添加岩馆弹窗 -->
+    <!-- 添加品牌弹窗 -->
     <div id="addGymModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
         <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 320px; width: 100%;">
-            <div style="font-size: 16px; font-weight: bold; margin-bottom: 20px; text-align: center;">添加岩馆</div>
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">品牌</label>
-                <select id="gymCategorySetting" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
-                    <option value="香蕉">🍌 香蕉</option>
-                    <option value="cube">📦 cube</option>
-                    <option value="upper">⬆️ upper</option>
-                    <option value="闪电">⚡ 闪电</option>
-                    <option value="其他">📍 其他</option>
-                </select>
-            </div>
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 20px; text-align: center;">添加品牌</div>
             <div style="margin-bottom: 24px;">
-                <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">岩馆名称</label>
-                <input type="text" id="newGymSetting" placeholder="输入岩馆名称" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); box-sizing: border-box;">
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">品牌名称</label>
+                <input type="text" id="newGymSetting" placeholder="输入品牌名称" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); box-sizing: border-box;">
             </div>
             <div style="display: flex; gap: 12px;">
                 <button onclick="document.getElementById('addGymModal').style.display='none'" style="flex: 1; padding: 12px; background: #0f0f23; border: 1px solid #666; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">取消</button>
                 <button onclick="addSetting('gym'); document.getElementById('addGymModal').style.display='none';" style="flex: 1; padding: 12px; background: var(--primary-gradient); border: none; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">添加</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加岩馆弹窗（按品牌） -->
+    <div id="addGymByBrandModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 320px; width: 100%;">
+            <div id="addGymByBrandTitle" style="font-size: 16px; font-weight: bold; margin-bottom: 20px; text-align: center;">添加岩馆</div>
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">岩馆名称</label>
+                <input type="text" id="newGymByBrandName" placeholder="输入岩馆名称" style="width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); box-sizing: border-box;">
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="document.getElementById('addGymByBrandModal').style.display='none'" style="flex: 1; padding: 12px; background: #0f0f23; border: 1px solid #666; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">取消</button>
+                <button onclick="addGymToBrand()" style="flex: 1; padding: 12px; background: var(--primary-gradient); border: none; border-radius: 10px; color: #fff; font-size: 14px; cursor: pointer;">添加</button>
             </div>
         </div>
     </div>

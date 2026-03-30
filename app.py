@@ -6,14 +6,17 @@
 from flask import Flask, request, jsonify, session
 import os
 import json
+import datetime
 
 from models import (
-    create_user, verify_user, get_user_by_id,
+    create_user, verify_user, get_user_by_id, is_city_manager, get_managed_cities,
     add_record, get_records, update_record, delete_record, clear_all_records,
-    add_gym, get_gyms, delete_gym, delete_gym_by_name, clear_all_gyms,
+    add_gym, get_gyms, get_gyms_by_city, delete_gym, delete_gym_by_name, clear_all_gyms,
     add_partner, get_partners, delete_partner, delete_partner_by_name,
     export_user_data, import_user_data,
-    get_max_grade, save_max_grade
+    get_max_grade, save_max_grade, get_min_grade, save_min_grade,
+    get_user_city_preference, save_user_city_preference,
+    add_login_log
 )
 
 app = Flask(__name__)
@@ -36,6 +39,19 @@ def require_login(f):
     def decorated(*args, **kwargs):
         if not get_current_user_id():
             return jsonify({'error': '请先登录'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+def require_city_manager(f):
+    """城市管理员装饰器"""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user_id = get_current_user_id()
+        if not user_id:
+            return jsonify({'error': '请先登录'}), 401
+        if not is_city_manager(user_id) and not session.get('is_admin'):
+            return jsonify({'error': '无权限'}), 403
         return f(*args, **kwargs)
     return decorated
 
@@ -65,14 +81,22 @@ def login():
     data = request.json
     username = data.get('username')
     password = data.get('password')
+    ip_address = request.remote_addr
+    user_agent = request.headers.get('User-Agent', '')
     
     user = verify_user(username, password)
     if user:
         session['user_id'] = user['id']
         session['username'] = user['username']
         session['is_admin'] = user.get('is_admin', 0)
+        # 记录登录时间标记
+        session['_login_time'] = datetime.datetime.now().isoformat()
+        # 记录登录日志
+        add_login_log(user['id'], user['username'], ip_address, user_agent, 1)
         return jsonify({'success': True, 'username': user['username'], 'is_admin': user.get('is_admin', 0)})
     else:
+        # 记录失败登录
+        add_login_log(None, username, ip_address, user_agent, 0)
         return jsonify({'error': '用户名或密码错误'}), 401
 
 @app.route('/api/logout', methods=['POST'])
@@ -87,7 +111,21 @@ def check_login():
     user_id = get_current_user_id()
     if user_id:
         user = get_user_by_id(user_id)
-        return jsonify({'logged_in': True, 'username': user['username'], 'is_admin': user.get('is_admin', 0)})
+        # 如果session存在但没有登录时间标记（session恢复的情况），补记登录日志
+        if '_login_time' not in session:
+            session['_login_time'] = datetime.datetime.now().isoformat()
+            ip_address = request.remote_addr
+            user_agent = request.headers.get('User-Agent', '')
+            add_login_log(user['id'], user['username'], ip_address, user_agent, 1)
+        # 获取用户角色信息
+        managed_cities = get_managed_cities(user_id) if is_city_manager(user_id) else []
+        return jsonify({
+            'logged_in': True, 
+            'username': user['username'], 
+            'is_admin': user.get('is_admin', 0),
+            'is_city_manager': is_city_manager(user_id),
+            'managed_cities': managed_cities
+        })
     return jsonify({'logged_in': False})
 
 # ==================== 爬墙记录接口 ====================
@@ -111,6 +149,7 @@ def add_record_api():
         user_id=user_id,
         date=data.get('date'),
         gym=data.get('gym'),
+        city=data.get('city'),
         routes=data.get('routes'),
         type=data.get('type'),
         duration=data.get('duration'),
@@ -131,6 +170,7 @@ def update_record_api(record_id):
         user_id=user_id,
         date=data.get('date'),
         gym=data.get('gym'),
+        city=data.get('city'),
         routes=data.get('routes'),
         type=data.get('type'),
         duration=data.get('duration'),
@@ -164,24 +204,41 @@ def clear_records_api():
 @app.route('/api/gyms', methods=['GET'])
 @require_login
 def get_gyms_api():
-    """获取岩馆列表（全局共享）"""
-    gyms = get_gyms(None)
+    """获取岩馆列表（可选按城市过滤）"""
+    city = request.args.get('city')
+    if city:
+        gyms = get_gyms_by_city(city)
+    else:
+        gyms = get_gyms(None)
     return jsonify(gyms)
 
 @app.route('/api/gyms', methods=['POST'])
 @require_login
 def add_gym_api():
-    """添加岩馆 - 仅管理员"""
-    if not session.get('is_admin'):
+    """添加岩馆 - 城市管理员或全局管理员"""
+    user_id = get_current_user_id()
+    is_admin = session.get('is_admin', 0)
+    
+    # 只有城市管理员或全局管理员才能添加岩馆
+    if not is_admin and not is_city_manager(user_id):
         return jsonify({'error': '无权限'}), 403
+    
     data = request.json
-    add_gym(None, data.get('gym_name'), data.get('wall_type'))
+    city = data.get('city', '深圳')
+    
+    # 城市管理员只能管理自己负责的城市
+    if not is_admin and is_city_manager(user_id):
+        managed_cities = get_managed_cities(user_id)
+        if city not in managed_cities:
+            return jsonify({'error': '只能管理负责的城市'}), 403
+    
+    add_gym(None, data.get('gym_name'), data.get('wall_type'), city)
     return jsonify({'success': True})
 
 @app.route('/api/gyms/clear', methods=['POST'])
 @require_login
 def clear_gyms_api():
-    """清空所有岩馆 - 仅管理员"""
+    """清空所有岩馆 - 仅全局管理员"""
     if not session.get('is_admin'):
         return jsonify({'error': '无权限'}), 403
     clear_all_gyms()
@@ -190,24 +247,41 @@ def clear_gyms_api():
 @app.route('/api/gyms/<int:gym_id>', methods=['DELETE'])
 @require_login
 def delete_gym_api(gym_id):
-    """删除岩馆 - 仅管理员"""
-    if not session.get('is_admin'):
+    """删除岩馆 - 城市管理员或全局管理员"""
+    user_id = get_current_user_id()
+    is_admin = session.get('is_admin', 0)
+    
+    if not is_admin and not is_city_manager(user_id):
         return jsonify({'error': '无权限'}), 403
+    
     delete_gym(gym_id)
     return jsonify({'success': True})
 
 @app.route('/api/gyms/delete', methods=['POST'])
 @require_login
 def delete_gym_by_name_api():
-    """按名称删除岩馆 - 仅管理员"""
-    if not session.get('is_admin'):
+    """按名称删除岩馆"""
+    user_id = get_current_user_id()
+    is_admin = session.get('is_admin', 0)
+    
+    if not is_admin and not is_city_manager(user_id):
         return jsonify({'error': '无权限'}), 403
+    
     data = request.json or {}
     name = data.get('name')
     wall_type = data.get('wall_type')
+    city = data.get('city')
+    
     if not name:
         return jsonify({'error': '缺少参数'}), 400
-    delete_gym_by_name(name, wall_type)
+    
+    # 城市管理员只能删除自己城市的岩馆
+    if not is_admin and is_city_manager(user_id):
+        managed_cities = get_managed_cities(user_id)
+        if city not in managed_cities:
+            return jsonify({'error': '只能删除负责城市的岩馆'}), 403
+    
+    delete_gym_by_name(name, wall_type, city)
     return jsonify({'success': True})
 
 # ==================== 搭子配置接口 ====================
@@ -285,6 +359,8 @@ def import_data_api():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ==================== 用户设置接口 ====================
+
 @app.route('/api/settings/max_grade', methods=['POST'])
 @require_login
 def save_max_grade_api():
@@ -302,6 +378,54 @@ def get_max_grade_api():
     user_id = get_current_user_id()
     grade = get_max_grade(user_id)
     return jsonify({'grade': grade})
+
+@app.route('/api/settings/min_grade', methods=['POST'])
+@require_login
+def save_min_grade_api():
+    """保存最低级别"""
+    user_id = get_current_user_id()
+    data = request.json
+    grade = data.get('grade', '')
+    save_min_grade(user_id, grade)
+    return jsonify({'success': True})
+
+@app.route('/api/settings/min_grade', methods=['GET'])
+@require_login
+def get_min_grade_api():
+    """获取最低级别"""
+    user_id = get_current_user_id()
+    grade = get_min_grade(user_id)
+    return jsonify({'grade': grade})
+
+@app.route('/api/settings/city_preference', methods=['GET'])
+@require_login
+def get_city_preference_api():
+    """获取用户上次选择的城市的偏好"""
+    user_id = get_current_user_id()
+    city = get_user_city_preference(user_id)
+    return jsonify({'city': city})
+
+@app.route('/api/settings/city_preference', methods=['POST'])
+@require_login
+def save_city_preference_api():
+    """保存用户选择的城市的偏好"""
+    user_id = get_current_user_id()
+    data = request.json
+    city = data.get('city', '深圳')
+    save_user_city_preference(user_id, city)
+    return jsonify({'success': True})
+
+@app.route('/api/settings/managed_cities', methods=['GET'])
+@require_login
+def get_managed_cities_api():
+    """获取用户负责的城市列表"""
+    user_id = get_current_user_id()
+    cities = get_managed_cities(user_id)
+    is_city_mgr = is_city_manager(user_id)
+    return jsonify({
+        'is_city_manager': is_city_mgr,
+        'managed_cities': cities
+    })
 
 # ==================== 前端页面 ====================
 
