@@ -1198,14 +1198,19 @@
                     citySelector.appendChild(opt);
                 });
                 citySelector.style.display = 'inline-block';
-                citySelector.value = settings.selectedCity || settings.managedCities[0] || '深圳';
+                citySelector.value = settings.managedCities.length === 1 ? settings.managedCities[0] : '深圳';
             } else {
                 citySelector.style.display = 'none';
             }
             
-            // 渲染当前城市的岩馆
-            const currentCity = settings.isCityManager ? (settings.managedCities[0] || '深圳') : '深圳';
+            // 渲染当前城市的岩馆（跟随城市选择器的选中值）
+            const currentCity = citySelector && citySelector.style.display !== 'none' ? citySelector.value : (settings.selectedCity || '深圳');
             const cityGyms = gymsByCity[currentCity] || {};
+
+            // 确保城市选择器的值与渲染列表一致
+            if (citySelector && citySelector.style.display !== 'none') {
+                citySelector.value = currentCity;
+            }
             
             for (const brand in cityGyms) {
                 html += '<div class="gym-category">';
@@ -1560,7 +1565,7 @@
                 cityHtml += '<option value="' + c + '">' + c + '</option>';
             });
             citySelect.innerHTML = cityHtml;
-            citySelect.value = settings.selectedCity || '深圳';
+            citySelect.value = '深圳';
             
             // 初始化岩馆品牌下拉（根据选中城市）
             updateBrandOptions();
@@ -1595,7 +1600,12 @@
             settings.gyms.forEach(g => {
                 if (g.city) cities.add(g.city);
             });
-            return Array.from(cities).sort();
+            const sorted = Array.from(cities).sort();
+            const shenzhen = sorted.indexOf('深圳');
+            if (shenzhen > 0) {
+                sorted.unshift(sorted.splice(shenzhen, 1)[0]);
+            }
+            return sorted;
         }
         
         // 获取某城市的品牌列表
@@ -1896,6 +1906,7 @@
             document.getElementById('climbDate').value = selectedDate;
             document.getElementById('addForm').reset();
             document.getElementById('climbDate').value = selectedDate;
+            document.getElementById('recordCity').value = '深圳';
             closeModal('detailModal');
             document.getElementById('addModal').classList.add('active');
         }
